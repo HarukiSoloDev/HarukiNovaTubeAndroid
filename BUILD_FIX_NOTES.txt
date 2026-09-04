@@ -1,7 +1,7 @@
-Haruki NovaTube Android v0.8.1 — Build Fix Carry-Forward
+Haruki NovaTube Android v0.8.2 — Build Fix Carry-Forward
 ========================================================
 
-The v0.8.0 compile fixes are retained in v0.8.1:
+The v0.8.0 compile fixes and v0.8.1 performance fixes are retained in v0.8.2:
 
 1. RecommendationStore.kt
    - topicSignature(BrowseVideo) helper remains present.
@@ -13,7 +13,10 @@ The v0.8.0 compile fixes are retained in v0.8.1:
 3. app/build.gradle.kts
    - TAndroidLame 1.1 keeps its legacy com.android.support transitive dependencies excluded so AndroidX core/media do not collide.
 
-4. tools/preflight.py
-   - Continues to guard the MP3 API and AndroidX exclusion, and now also validates the v0.8.1 performance/Shorts/AI changes.
+4. v0.8.1 performance carry-forward
+   - 8 MiB bounded video/audio chunks, playback-safe download progress, Shorts Watch restoration and Nova AI modes remain guarded.
 
-Current project version: 0.8.1 / versionCode 810.
+5. v0.8.2 additions
+   - Native per-session Equalizer, popular/custom presets, app-wide EQ playback paths and premium Compose interaction hooks are validated by tools/preflight.py.
+
+Current project version: 0.8.2 / versionCode 820.

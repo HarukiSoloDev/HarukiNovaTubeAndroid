@@ -1,16 +1,25 @@
-# Haruki NovaTube Android v0.8.1
+# Haruki NovaTube Android v0.8.2
 
 NovaTube is a native Android video client written in Kotlin + Jetpack Compose.
 
-## v0.8.1 performance highlights
+## v0.8.2 equalizer + polish highlights
 
-- **Playback-safe downloads:** downloads no longer intentionally stop when playback buffers. At least one active worker keeps progressing while extra workers/connections yield bandwidth to Media3.
-- **Faster video + audio transfers:** supported CDN streams use bounded **8 MiB HTTP range chunks**. Separate audio uses the same fast path instead of falling back to one large request after the video finishes.
-- **Adaptive connection scaling:** Auto/Turbo/Playback Priority adjust queue workers and per-download connections at chunk boundaries; a shared OkHttp client reuses connections across workers.
-- **Faster long-form response:** Media3 1.11.0 remains in place, with a 45–120 s forward buffer and lower 2.5 s startup / 6 s post-rebuffer thresholds.
-- **Shorts back-navigation fix:** opening Shorts pauses but keeps the existing long-form MediaSession/ExoPlayer alive. Back restores the previous Watch or miniplayer state and resumes only if it was previously playing.
-- **Nova AI modes:** Fast minimizes network/search work, Smart balances speed and coverage, and Deep retains the full multi-query/channel/playlist/metadata search.
-- **UI polish:** Nova AI now exposes clear search-mode controls, Downloads shows the performance engine/combined active speed, and Saved URL keys are memoized to reduce avoidable recomposition work.
+- **Native Nova Equalizer:** lightweight per-audio-session Android EQ attached directly to Media3/ExoPlayer instead of adding a heavy DSP dependency.
+- **Popular sound setups:** Flat, Bass Boost, Pop, Rock, Hip-Hop, EDM, Vocal, Podcast, Classical, Movie and Night presets.
+- **Custom 5-band tuner:** live 60 Hz / 230 Hz / 910 Hz / 3.6 kHz / 14 kHz controls, safely mapped and clamped to the EQ bands supported by the phone.
+- **App-wide audio tuning:** long-form playback, the active Short, and downloaded-video playback all use the selected EQ. Adjacent preloaded Shorts do not keep extra EQ engines alive.
+- **Premium interaction feedback:** frequently tapped cards and navigation controls now use short press-scale/alpha feedback while keeping layout stable.
+- **Smoother navigation:** subtle fade + horizontal slide transitions between app destinations instead of abrupt screen swaps.
+- **Performance-conscious polish:** press animations use draw-layer transforms, EQ settings are observed with distinct state, live slider previews avoid DataStore writes on every drag frame, and long-form back-buffer memory was trimmed slightly.
+
+## v0.8.1 performance improvements retained
+
+- Playback-safe smart downloads with at least one worker continuing during playback.
+- Bounded 8 MiB HTTP range chunks for both video and separate audio downloads.
+- Adaptive download connection scaling and shared OkHttp connection reuse.
+- Faster Media3 long-form startup/rebuffer thresholds.
+- Shorts Back restores the preserved long-form Watch/miniplayer session.
+- Nova AI Fast, Smart and Deep modes.
 
 ## Existing v0.8 features retained
 

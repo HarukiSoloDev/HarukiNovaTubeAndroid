@@ -5,6 +5,7 @@ import android.content.Intent
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
 import android.net.Uri
+import android.media.AudioManager
 import androidx.annotation.OptIn
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -47,8 +48,11 @@ import com.harukisolodev.harukistream.data.BrowseVideo
 import com.harukisolodev.harukistream.data.DownloadQueueItem
 import com.harukisolodev.harukistream.data.DownloadQueueStatus
 import com.harukisolodev.harukistream.data.MediaVariant
+import com.harukisolodev.harukistream.data.EqualizerPreset
+import com.harukisolodev.harukistream.data.shortLabel
 import com.harukisolodev.harukistream.player.PlaybackNetworkCoordinator
 import com.harukisolodev.harukistream.player.PlaybackDataSourceFactory
+import com.harukisolodev.harukistream.player.NovaEqualizerEngine
 import com.harukisolodev.harukistream.ui.components.RemoteImage
 import com.harukisolodev.harukistream.ui.theme.*
 import kotlinx.coroutines.delay
@@ -64,11 +68,16 @@ internal fun VerticalNativePlayer(
     active: Boolean,
     saved: Boolean,
     playbackQualityPreference: String,
+    equalizerEnabled: Boolean,
+    equalizerPreset: EqualizerPreset,
+    equalizerCustomBands: List<Float>,
     commentCount: Int,
     downloadState: DownloadQueueItem?,
     onToggleSave: (BrowseVideo) -> Unit,
     onComments: () -> Unit,
     onDownload: (AnalyzedMedia) -> Unit,
+    onEqualizerEnabled: (Boolean) -> Unit,
+    onEqualizerPreset: (EqualizerPreset) -> Unit,
     onNotInterested: () -> Unit,
     onDontRecommendChannel: () -> Unit,
     modifier: Modifier = Modifier
@@ -82,11 +91,15 @@ internal fun VerticalNativePlayer(
             .setPrioritizeTimeOverSizeThresholdsForStreaming(true)
             .build()
     }
+    val audioSessionId = remember(item.url) {
+        runCatching { context.getSystemService(AudioManager::class.java).generateAudioSessionId() }.getOrDefault(0)
+    }
     val player = remember(item.url) {
         ExoPlayer.Builder(context)
             .setLoadControl(loadControl)
             .build()
             .apply {
+                if (audioSessionId > 0) setAudioSessionId(audioSessionId)
                 repeatMode = Player.REPEAT_MODE_ONE
                 playWhenReady = false
             }
@@ -98,6 +111,8 @@ internal fun VerticalNativePlayer(
     var qualityMenu by remember { mutableStateOf(false) }
     var audioMenu by remember { mutableStateOf(false) }
     var moreMenu by remember { mutableStateOf(false) }
+    var equalizerMenu by remember { mutableStateOf(false) }
+    var equalizerEngine by remember(item.url) { mutableStateOf<NovaEqualizerEngine?>(null) }
     var showCenterState by remember { mutableStateOf(false) }
     var preparedKey by remember(item.url) { mutableStateOf("") }
 
@@ -133,6 +148,26 @@ internal fun VerticalNativePlayer(
         }
     }
     val currentActive by rememberUpdatedState(active)
+
+    DisposableEffect(active, audioSessionId) {
+        if (active && audioSessionId > 0) {
+            equalizerEngine = NovaEqualizerEngine(audioSessionId).also { engine ->
+                val curve = if (equalizerPreset == EqualizerPreset.CUSTOM) equalizerCustomBands else equalizerPreset.bandsDb
+                engine.applyCurve(equalizerEnabled, curve)
+            }
+        }
+        onDispose {
+            equalizerEngine?.release()
+            equalizerEngine = null
+        }
+    }
+
+    LaunchedEffect(active, equalizerEnabled, equalizerPreset, equalizerCustomBands) {
+        if (active) {
+            val curve = if (equalizerPreset == EqualizerPreset.CUSTOM) equalizerCustomBands else equalizerPreset.bandsDb
+            equalizerEngine?.applyCurve(equalizerEnabled, curve)
+        }
+    }
 
     DisposableEffect(player) {
         val listener = object : Player.Listener {
@@ -288,6 +323,32 @@ internal fun VerticalNativePlayer(
                                 onClick = { selectedAudioTrackId = audio.id; audioMenu = false }
                             )
                         }
+                    }
+                }
+            }
+
+            Box {
+                ShortAction(
+                    Icons.Rounded.GraphicEq,
+                    if (equalizerEnabled) equalizerPreset.shortLabel else "EQ",
+                    selected = equalizerEnabled
+                ) { equalizerMenu = true }
+                DropdownMenu(expanded = equalizerMenu, onDismissRequest = { equalizerMenu = false }, containerColor = HarukiCard2) {
+                    DropdownMenuItem(
+                        text = { Text("Equalizer off", color = HarukiText) },
+                        trailingIcon = { if (!equalizerEnabled) Icon(Icons.Rounded.Check, null, tint = HarukiPrimary) },
+                        onClick = { onEqualizerEnabled(false); equalizerMenu = false }
+                    )
+                    listOf(
+                        EqualizerPreset.FLAT, EqualizerPreset.BASS_BOOST, EqualizerPreset.POP,
+                        EqualizerPreset.ROCK, EqualizerPreset.HIP_HOP, EqualizerPreset.EDM,
+                        EqualizerPreset.VOCAL, EqualizerPreset.PODCAST, EqualizerPreset.MOVIE
+                    ).forEach { preset ->
+                        DropdownMenuItem(
+                            text = { Text(preset.displayName, color = HarukiText) },
+                            trailingIcon = { if (equalizerEnabled && equalizerPreset == preset) Icon(Icons.Rounded.Check, null, tint = HarukiPrimary) },
+                            onClick = { onEqualizerPreset(preset); equalizerMenu = false }
+                        )
                     }
                 }
             }

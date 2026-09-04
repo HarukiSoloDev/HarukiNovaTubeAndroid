@@ -3,6 +3,7 @@ package com.harukisolodev.harukistream.player
 import android.app.PendingIntent
 import android.content.Intent
 import android.net.Uri
+import android.media.AudioManager
 import android.os.Bundle
 import androidx.annotation.OptIn
 import androidx.media3.common.AudioAttributes
@@ -29,6 +30,8 @@ import com.harukisolodev.harukistream.MainActivity
 import com.harukisolodev.harukistream.data.AnalyzedMedia
 import com.harukisolodev.harukistream.data.BrowseVideo
 import com.harukisolodev.harukistream.data.MediaVariant
+import com.harukisolodev.harukistream.data.SettingsRepository
+import com.harukisolodev.harukistream.data.EqualizerPreset
 import com.harukisolodev.harukistream.extractor.BrowseRepository
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -37,6 +40,9 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.cancel
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.collect
+import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
 
 @OptIn(UnstableApi::class)
@@ -46,6 +52,7 @@ class PlaybackService : MediaSessionService() {
     private lateinit var defaultDataSourceFactory: DataSource.Factory
     private lateinit var bandwidthMeter: DefaultBandwidthMeter
     private var currentPlaybackKey: String = ""
+    private var equalizerEngine: NovaEqualizerEngine? = null
 
     private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Main.immediate)
     private val browseRepository by lazy { BrowseRepository() }
@@ -98,14 +105,17 @@ class PlaybackService : MediaSessionService() {
         // substantially more responsive.
         val loadControl = DefaultLoadControl.Builder()
             .setBufferDurationsMsForStreaming(45_000, 120_000, 2_500, 6_000)
-            .setBackBuffer(15_000, true)
+            .setBackBuffer(12_000, true)
             .setPrioritizeTimeOverSizeThresholdsForStreaming(true)
             .build()
+        val audioManager = getSystemService(AudioManager::class.java)
+        val audioSessionId = runCatching { audioManager.generateAudioSessionId() }.getOrDefault(0)
         player = ExoPlayer.Builder(this)
             .setLoadControl(loadControl)
             .setWakeMode(C.WAKE_MODE_NETWORK)
             .build()
             .apply {
+                if (audioSessionId > 0) setAudioSessionId(audioSessionId)
                 setAudioAttributes(
                     AudioAttributes.Builder()
                         .setUsage(C.USAGE_MEDIA)
@@ -115,6 +125,17 @@ class PlaybackService : MediaSessionService() {
                 )
                 playWhenReady = true
             }
+        equalizerEngine = NovaEqualizerEngine(audioSessionId)
+        serviceScope.launch {
+            SettingsRepository(this@PlaybackService).settings
+                .map { settings -> Triple(settings.equalizerEnabled, settings.equalizerPreset, settings.equalizerCustomBands) }
+                .distinctUntilChanged()
+                .collect { (enabled, preset, customBands) ->
+                    val curve = if (preset == EqualizerPreset.CUSTOM) customBands else preset.bandsDb
+                    equalizerEngine?.applyCurve(enabled, curve)
+                }
+        }
+
         player.addListener(object : Player.Listener {
             override fun onIsPlayingChanged(isPlaying: Boolean) {
                 PlaybackNetworkCoordinator.update(isPlaying, player.playbackState)
@@ -760,6 +781,8 @@ class PlaybackService : MediaSessionService() {
         serviceScope.cancel()
         session?.release()
         session = null
+        equalizerEngine?.release()
+        equalizerEngine = null
         if (::player.isInitialized) player.release()
         PlaybackAutoplayBridge.clear()
         PlaybackNetworkCoordinator.reset()
@@ -783,6 +806,11 @@ class PlaybackService : MediaSessionService() {
 
         fun resumeAfterShorts(shouldResume: Boolean) {
             activeInstance?.resumeAfterShortsInternal(shouldResume)
+        }
+
+        /** Live preview used by the equalizer sliders without writing DataStore every frame. */
+        fun previewEqualizer(enabled: Boolean, bandsDb: List<Float>) {
+            activeInstance?.equalizerEngine?.applyCurve(enabled, bandsDb)
         }
     }
 

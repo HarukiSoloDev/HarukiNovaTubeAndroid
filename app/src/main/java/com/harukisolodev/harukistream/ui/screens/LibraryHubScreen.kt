@@ -19,6 +19,7 @@ import com.harukisolodev.harukistream.data.BrowseVideo
 import com.harukisolodev.harukistream.data.DownloadQueueItem
 import com.harukisolodev.harukistream.data.DownloadQueueStatus
 import com.harukisolodev.harukistream.data.LibraryItem
+import com.harukisolodev.harukistream.ui.components.premiumClickable
 import com.harukisolodev.harukistream.ui.theme.*
 
 @Composable
@@ -65,7 +66,7 @@ fun LibraryHubScreen(
 @Composable
 private fun LibraryEntry(icon: ImageVector, title: String, subtitle: String, tint: Color, onClick: () -> Unit) {
     Surface(
-        modifier = Modifier.fillMaxWidth().clickable(onClick = onClick),
+        modifier = Modifier.fillMaxWidth().premiumClickable(onClick = onClick),
         color = HarukiCard,
         shape = RoundedCornerShape(22.dp),
         border = androidx.compose.foundation.BorderStroke(1.dp, HarukiBorderSoft)

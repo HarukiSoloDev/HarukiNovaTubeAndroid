@@ -31,6 +31,7 @@ import com.harukisolodev.harukistream.ui.BrowseViewModel
 import com.harukisolodev.harukistream.ui.NovaAdaptiveInfo
 import com.harukisolodev.harukistream.ui.components.RemoteImage
 import com.harukisolodev.harukistream.ui.components.formatDuration
+import com.harukisolodev.harukistream.ui.components.premiumClickable
 import com.harukisolodev.harukistream.ui.theme.*
 
 @Composable
@@ -246,7 +247,7 @@ fun YouTubeScreen(
                                 Text("Continue watching", style = MaterialTheme.typography.titleMedium, color = HarukiText, modifier = Modifier.padding(horizontal = 14.dp))
                                 LazyRow(contentPadding = PaddingValues(horizontal = 14.dp), horizontalArrangement = Arrangement.spacedBy(9.dp)) {
                                     items(recent, key = { "recent-${it.url}" }) { video ->
-                                        Column(Modifier.width(190.dp).clickable { onOpenVideo(video) }, verticalArrangement = Arrangement.spacedBy(5.dp)) {
+                                        Column(Modifier.width(190.dp).premiumClickable { onOpenVideo(video) }, verticalArrangement = Arrangement.spacedBy(5.dp)) {
                                             Box {
                                                 RemoteImage(video.thumbnailUrl, Modifier.fillMaxWidth().aspectRatio(16f / 9f).clip(RoundedCornerShape(12.dp)))
                                                 if (video.durationSeconds > 0) DurationBadge(formatDuration(video.durationSeconds), Modifier.align(Alignment.BottomEnd).padding(5.dp))
@@ -271,7 +272,7 @@ fun YouTubeScreen(
                                 LazyRow(contentPadding = PaddingValues(horizontal = 14.dp), horizontalArrangement = Arrangement.spacedBy(9.dp)) {
                                     items(shorts, key = { "short-${it.url}" }) { short ->
                                         Column(
-                                            Modifier.width(140.dp).clickable { onOpenShorts(short) },
+                                            Modifier.width(140.dp).premiumClickable { onOpenShorts(short) },
                                             verticalArrangement = Arrangement.spacedBy(5.dp)
                                         ) {
                                             Box {
@@ -514,7 +515,7 @@ private fun SearchSectionTitle(title: String) {
 @Composable
 private fun ChannelSearchCard(entity: BrowseEntity, onClick: () -> Unit) {
     Row(
-        Modifier.fillMaxWidth().clickable(onClick = onClick).padding(horizontal = 14.dp, vertical = 10.dp),
+        Modifier.fillMaxWidth().premiumClickable(onClick = onClick).padding(horizontal = 14.dp, vertical = 10.dp),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(13.dp)
     ) {
@@ -532,7 +533,7 @@ private fun ChannelSearchCard(entity: BrowseEntity, onClick: () -> Unit) {
 @Composable
 private fun PlaylistSearchCard(entity: BrowseEntity, onClick: () -> Unit) {
     Row(
-        Modifier.fillMaxWidth().clickable(onClick = onClick).padding(horizontal = 12.dp, vertical = 8.dp),
+        Modifier.fillMaxWidth().premiumClickable(onClick = onClick).padding(horizontal = 12.dp, vertical = 8.dp),
         horizontalArrangement = Arrangement.spacedBy(11.dp),
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -560,7 +561,7 @@ private fun YouTubeVideoCard(
     onDontRecommendChannel: () -> Unit = {}
 ) {
     var menuOpen by remember { mutableStateOf(false) }
-    Column(modifier.fillMaxWidth().clickable(onClick = onClick).padding(bottom = 10.dp), verticalArrangement = Arrangement.spacedBy(7.dp)) {
+    Column(modifier.fillMaxWidth().premiumClickable(onClick = onClick).padding(bottom = 10.dp), verticalArrangement = Arrangement.spacedBy(7.dp)) {
         Box(Modifier.fillMaxWidth().padding(horizontal = 8.dp)) {
             RemoteImage(item.thumbnailUrl, Modifier.fillMaxWidth().aspectRatio(16f / 9f).clip(RoundedCornerShape(13.dp)))
             if (item.durationSeconds > 0) DurationBadge(formatDuration(item.durationSeconds), Modifier.align(Alignment.BottomEnd).padding(6.dp))

@@ -468,6 +468,9 @@ class HarukiViewModel(app: Application) : AndroidViewModel(app) {
     fun setAutoplayNext(value: Boolean) = viewModelScope.launch { settingsRepo.setAutoplayNext(value) }
     fun setPlaybackQuality(value: String) = viewModelScope.launch { settingsRepo.setPlaybackQuality(value) }
     fun setDownloadSpeedMode(value: DownloadSpeedMode) = viewModelScope.launch { settingsRepo.setDownloadSpeedMode(value) }
+    fun setEqualizerEnabled(value: Boolean) = viewModelScope.launch { settingsRepo.setEqualizerEnabled(value) }
+    fun setEqualizerPreset(value: EqualizerPreset) = viewModelScope.launch { settingsRepo.setEqualizerPreset(value) }
+    fun setEqualizerCustomBands(value: List<Float>) = viewModelScope.launch { settingsRepo.setEqualizerCustomBands(value) }
     fun resetSettings() = viewModelScope.launch { settingsRepo.reset() }
 
     private fun chooseVariant(variants: List<MediaVariant>, quality: String): MediaVariant? {

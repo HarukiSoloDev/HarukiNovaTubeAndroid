@@ -2,6 +2,9 @@ package com.harukisolodev.harukistream.ui
 
 import android.content.Intent
 import androidx.activity.compose.BackHandler
+import androidx.compose.animation.*
+import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
@@ -12,6 +15,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.font.FontWeight
@@ -32,6 +36,7 @@ private enum class Destination(val label: String, val icon: ImageVector) {
     PLAYLISTS("Playlists", Icons.Rounded.PlaylistPlay),
     HISTORY("History", Icons.Rounded.History),
     SAVED("Saved", Icons.Rounded.Bookmark),
+    EQUALIZER("Equalizer", Icons.Rounded.GraphicEq),
     SETTINGS("Settings", Icons.Rounded.Settings),
     ABOUT("About", Icons.Rounded.Info)
 }
@@ -191,14 +196,23 @@ fun HarukiApp(
                 }
 
                 Box(Modifier.weight(1f).fillMaxHeight()) {
-                    DestinationScreen(
-                        destination = destination, browse = browse, history = history, saved = saved,
-                        playlists = playlists, queue = queue, library = library, settings = settings,
-                        adaptive = adaptive, downloadedKeys = downloadedKeys,
-                        browseVm = browseVm, downloadVm = downloadVm,
-                        onBackSubpage = ::navigateBackSection, onNavigate = ::navigateTo,
-                        onOpenVideo = ::openVideo, onOpenShorts = ::openShort
-                    )
+                    AnimatedContent(
+                        targetState = destination,
+                        transitionSpec = {
+                            (fadeIn(tween(150)) + slideInHorizontally(tween(180)) { it / 18 }) togetherWith
+                                (fadeOut(tween(110)) + slideOutHorizontally(tween(140)) { -it / 22 })
+                        },
+                        label = "nova-destination"
+                    ) { animatedDestination ->
+                        DestinationScreen(
+                            destination = animatedDestination, browse = browse, history = history, saved = saved,
+                            playlists = playlists, queue = queue, library = library, settings = settings,
+                            adaptive = adaptive, downloadedKeys = downloadedKeys,
+                            browseVm = browseVm, downloadVm = downloadVm,
+                            onBackSubpage = ::navigateBackSection, onNavigate = ::navigateTo,
+                            onOpenVideo = ::openVideo, onOpenShorts = ::openShort
+                        )
+                    }
 
                     if (watchMinimized && browse.watch.item != null && !showShorts) {
                         Box(Modifier.align(Alignment.BottomCenter).padding(bottom = if (showBottomBar) 80.dp else 0.dp).navigationBarsPadding()) {
@@ -220,7 +234,10 @@ fun HarukiApp(
                             playlists = playlists,
                             adaptive = adaptive,
                             autoplayNext = settings.autoplayNext, playbackQualityPreference = settings.playbackQuality,
+                            equalizerEnabled = settings.equalizerEnabled, equalizerPreset = settings.equalizerPreset,
                             onAutoplayChanged = downloadVm::setAutoplayNext,
+                            onEqualizerEnabled = downloadVm::setEqualizerEnabled,
+                            onEqualizerPreset = downloadVm::setEqualizerPreset,
                             onToggleSave = browseVm::toggleSaved,
                             onCreatePlaylist = browseVm::createLocalPlaylist,
                             onAddToPlaylist = browseVm::addToLocalPlaylist,
@@ -237,10 +254,15 @@ fun HarukiApp(
                             state = browse, vm = browseVm, initialUrl = shortsInitialUrl,
                             savedUrls = savedKeys,
                             playbackQualityPreference = settings.playbackQuality,
+                            equalizerEnabled = settings.equalizerEnabled,
+                            equalizerPreset = settings.equalizerPreset,
+                            equalizerCustomBands = settings.equalizerCustomBands,
                             downloadByUrl = downloadByKey,
                             onBack = { leaveShorts(restoreWatch = true) },
                             onToggleSave = browseVm::toggleSaved,
                             onDownload = { video, media -> sheetSignalVideo = video; sheetMedia = media },
+                            onEqualizerEnabled = downloadVm::setEqualizerEnabled,
+                            onEqualizerPreset = downloadVm::setEqualizerPreset,
                             bottomBarVisible = showBottomBar,
                             adaptive = adaptive
                         )
@@ -282,30 +304,59 @@ fun HarukiApp(
 
 @Composable
 private fun NovaBottomBar(modifier: Modifier = Modifier, destination: Destination, shortsSelected: Boolean, onHome: () -> Unit, onShorts: () -> Unit, onAi: () -> Unit, onLibrary: () -> Unit, onYou: () -> Unit) {
+    val homeSelected = !shortsSelected && destination == Destination.YOUTUBE
+    val aiSelected = !shortsSelected && destination == Destination.NOVA_AI
+    val librarySelected = !shortsSelected && destination == Destination.LIBRARY
+    val youSelected = !shortsSelected && destination == Destination.YOU
     NavigationBar(modifier = modifier.fillMaxWidth(), containerColor = HarukiSidebar, contentColor = HarukiText, tonalElevation = 0.dp) {
-        NavigationBarItem(!shortsSelected && destination == Destination.YOUTUBE, onHome, { Icon(Icons.Rounded.Home, null) }, label = { Text("Home") }, colors = novaNavColors())
-        NavigationBarItem(shortsSelected, onShorts, { Icon(Icons.Rounded.PlayCircle, null) }, label = { Text("Shorts") }, colors = novaNavColors())
-        NavigationBarItem(!shortsSelected && destination == Destination.NOVA_AI, onAi, {
-            Surface(color = if (!shortsSelected && destination == Destination.NOVA_AI) HarukiViolet else HarukiCard2, shape = MaterialTheme.shapes.medium) {
+        NavigationBarItem(homeSelected, onHome, { NovaNavIcon(Icons.Rounded.Home, homeSelected) }, label = { Text("Home") }, colors = novaNavColors())
+        NavigationBarItem(shortsSelected, onShorts, { NovaNavIcon(Icons.Rounded.PlayCircle, shortsSelected) }, label = { Text("Shorts") }, colors = novaNavColors())
+        NavigationBarItem(aiSelected, onAi, {
+            val scale by animateFloatAsState(if (aiSelected) 1.08f else 1f, tween(150), label = "ai-nav-scale")
+            Surface(
+                modifier = Modifier.graphicsLayer { scaleX = scale; scaleY = scale },
+                color = if (aiSelected) HarukiViolet else HarukiCard2,
+                shape = MaterialTheme.shapes.medium
+            ) {
                 Icon(Icons.Rounded.AutoAwesome, null, modifier = Modifier.padding(7.dp), tint = Color.White)
             }
         }, label = { Text("Nova AI", fontWeight = FontWeight.Bold) }, colors = novaNavColors())
-        NavigationBarItem(!shortsSelected && destination == Destination.LIBRARY, onLibrary, { Icon(Icons.Rounded.VideoLibrary, null) }, label = { Text("Library") }, colors = novaNavColors())
-        NavigationBarItem(!shortsSelected && destination == Destination.YOU, onYou, { Icon(Icons.Rounded.Person, null) }, label = { Text("You") }, colors = novaNavColors())
+        NavigationBarItem(librarySelected, onLibrary, { NovaNavIcon(Icons.Rounded.VideoLibrary, librarySelected) }, label = { Text("Library") }, colors = novaNavColors())
+        NavigationBarItem(youSelected, onYou, { NovaNavIcon(Icons.Rounded.Person, youSelected) }, label = { Text("You") }, colors = novaNavColors())
     }
 }
 
 @Composable
 private fun NovaNavigationRail(destination: Destination, shortsSelected: Boolean, large: Boolean, onHome: () -> Unit, onShorts: () -> Unit, onAi: () -> Unit, onLibrary: () -> Unit, onYou: () -> Unit) {
+    val homeSelected = !shortsSelected && destination == Destination.YOUTUBE
+    val aiSelected = !shortsSelected && destination == Destination.NOVA_AI
+    val librarySelected = !shortsSelected && destination == Destination.LIBRARY
+    val youSelected = !shortsSelected && destination == Destination.YOU
     NavigationRail(containerColor = HarukiSidebar, modifier = Modifier.fillMaxHeight().statusBarsPadding().navigationBarsPadding().width(if (large) 96.dp else 82.dp)) {
         Spacer(Modifier.height(if (large) 16.dp else 8.dp))
         val itemModifier = Modifier.padding(vertical = if (large) 5.dp else 1.dp)
-        NavigationRailItem(!shortsSelected && destination == Destination.YOUTUBE, onHome, { Icon(Icons.Rounded.Home, null) }, label = { Text("Home") }, modifier = itemModifier)
-        NavigationRailItem(shortsSelected, onShorts, { Icon(Icons.Rounded.PlayCircle, null) }, label = { Text("Shorts") }, modifier = itemModifier)
-        NavigationRailItem(!shortsSelected && destination == Destination.NOVA_AI, onAi, { Icon(Icons.Rounded.AutoAwesome, null, tint = HarukiViolet) }, label = { Text("Nova AI") }, modifier = itemModifier)
-        NavigationRailItem(!shortsSelected && destination == Destination.LIBRARY, onLibrary, { Icon(Icons.Rounded.VideoLibrary, null) }, label = { Text("Library") }, modifier = itemModifier)
-        NavigationRailItem(!shortsSelected && destination == Destination.YOU, onYou, { Icon(Icons.Rounded.Person, null) }, label = { Text("You") }, modifier = itemModifier)
+        NavigationRailItem(homeSelected, onHome, { NovaNavIcon(Icons.Rounded.Home, homeSelected) }, label = { Text("Home") }, modifier = itemModifier)
+        NavigationRailItem(shortsSelected, onShorts, { NovaNavIcon(Icons.Rounded.PlayCircle, shortsSelected) }, label = { Text("Shorts") }, modifier = itemModifier)
+        NavigationRailItem(aiSelected, onAi, { NovaNavIcon(Icons.Rounded.AutoAwesome, aiSelected, HarukiViolet) }, label = { Text("Nova AI") }, modifier = itemModifier)
+        NavigationRailItem(librarySelected, onLibrary, { NovaNavIcon(Icons.Rounded.VideoLibrary, librarySelected) }, label = { Text("Library") }, modifier = itemModifier)
+        NavigationRailItem(youSelected, onYou, { NovaNavIcon(Icons.Rounded.Person, youSelected) }, label = { Text("You") }, modifier = itemModifier)
     }
+}
+
+@Composable
+private fun NovaNavIcon(icon: ImageVector, selected: Boolean, selectedTint: Color? = null) {
+    val scale by animateFloatAsState(if (selected) 1.12f else 1f, tween(150), label = "nav-icon-scale")
+    val lift by animateFloatAsState(if (selected) -2f else 0f, tween(150), label = "nav-icon-lift")
+    Icon(
+        icon,
+        contentDescription = null,
+        tint = selectedTint ?: LocalContentColor.current,
+        modifier = Modifier.graphicsLayer {
+            scaleX = scale
+            scaleY = scale
+            translationY = lift
+        }
+    )
 }
 
 @Composable
@@ -322,8 +373,12 @@ private fun DestinationScreen(
         Destination.YOUTUBE -> YouTubeScreen(browse, history, browseVm, onOpenVideo, onOpenShorts, adaptive, downloadedKeys)
         Destination.NOVA_AI -> NovaAiScreen(browse.novaAi, { prompt, mode -> browseVm.searchWithNovaAi(prompt, library, mode) }, browseVm::clearNovaAi, onOpenVideo, adaptive)
         Destination.LIBRARY -> LibraryHubScreen(saved, history, queue, library, playlists.size, { onNavigate(Destination.SAVED) }, { onNavigate(Destination.HISTORY) }, { onNavigate(Destination.DOWNLOADS) }, { onNavigate(Destination.PLAYLISTS) })
-        Destination.YOU -> YouHubScreen({ onNavigate(Destination.SETTINGS) }, { onNavigate(Destination.ABOUT) })
-        Destination.DOWNLOADS -> DownloadsScreen(downloadVm, queue, library, onBackSubpage)
+        Destination.YOU -> YouHubScreen(
+            { onNavigate(Destination.EQUALIZER) },
+            { onNavigate(Destination.SETTINGS) },
+            { onNavigate(Destination.ABOUT) }
+        )
+        Destination.DOWNLOADS -> DownloadsScreen(downloadVm, queue, library, settings, onBackSubpage)
         Destination.PLAYLISTS -> LocalPlaylistsScreen(
             playlists = playlists, onBack = onBackSubpage,
             onPlay = { id, index ->
@@ -338,6 +393,7 @@ private fun DestinationScreen(
         )
         Destination.HISTORY -> HistoryScreen(browseVm, history, onBackSubpage, onOpenVideo)
         Destination.SAVED -> SavedScreen(saved, onBackSubpage, onOpenVideo, browseVm::removeSaved, browseVm::clearSaved)
+        Destination.EQUALIZER -> EqualizerScreen(downloadVm, settings, onBackSubpage)
         Destination.SETTINGS -> SettingsScreen(downloadVm, settings, onBackSubpage)
         Destination.ABOUT -> AboutScreen(onBackSubpage)
     }

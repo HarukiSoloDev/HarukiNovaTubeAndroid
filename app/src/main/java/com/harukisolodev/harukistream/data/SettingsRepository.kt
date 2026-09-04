@@ -20,6 +20,9 @@ class SettingsRepository(private val context: Context) {
         val AUTOPLAY_NEXT = booleanPreferencesKey("autoplay_next")
         val PLAYBACK_QUALITY = stringPreferencesKey("playback_quality")
         val DOWNLOAD_SPEED_MODE = stringPreferencesKey("download_speed_mode")
+        val EQUALIZER_ENABLED = booleanPreferencesKey("equalizer_enabled")
+        val EQUALIZER_PRESET = stringPreferencesKey("equalizer_preset")
+        val EQUALIZER_CUSTOM_BANDS = stringPreferencesKey("equalizer_custom_bands")
     }
 
     val settings: Flow<AppSettings> = context.harukiDataStore.data.map { prefs ->
@@ -35,7 +38,12 @@ class SettingsRepository(private val context: Context) {
             playbackQuality = prefs[Keys.PLAYBACK_QUALITY] ?: "Auto",
             downloadSpeedMode = runCatching {
                 DownloadSpeedMode.valueOf(prefs[Keys.DOWNLOAD_SPEED_MODE] ?: DownloadSpeedMode.AUTO.name)
-            }.getOrDefault(DownloadSpeedMode.AUTO)
+            }.getOrDefault(DownloadSpeedMode.AUTO),
+            equalizerEnabled = prefs[Keys.EQUALIZER_ENABLED] ?: false,
+            equalizerPreset = runCatching {
+                EqualizerPreset.valueOf(prefs[Keys.EQUALIZER_PRESET] ?: EqualizerPreset.FLAT.name)
+            }.getOrDefault(EqualizerPreset.FLAT),
+            equalizerCustomBands = parseEqualizerBands(prefs[Keys.EQUALIZER_CUSTOM_BANDS])
         )
     }
 
@@ -47,5 +55,23 @@ class SettingsRepository(private val context: Context) {
     suspend fun setAutoplayNext(value: Boolean) = context.harukiDataStore.edit { it[Keys.AUTOPLAY_NEXT] = value }
     suspend fun setPlaybackQuality(value: String) = context.harukiDataStore.edit { it[Keys.PLAYBACK_QUALITY] = value }
     suspend fun setDownloadSpeedMode(value: DownloadSpeedMode) = context.harukiDataStore.edit { it[Keys.DOWNLOAD_SPEED_MODE] = value.name }
+    suspend fun setEqualizerEnabled(value: Boolean) = context.harukiDataStore.edit { it[Keys.EQUALIZER_ENABLED] = value }
+    suspend fun setEqualizerPreset(value: EqualizerPreset) = context.harukiDataStore.edit { prefs ->
+        prefs[Keys.EQUALIZER_PRESET] = value.name
+        prefs[Keys.EQUALIZER_ENABLED] = true
+    }
+    suspend fun setEqualizerCustomBands(value: List<Float>) = context.harukiDataStore.edit { prefs ->
+        prefs[Keys.EQUALIZER_CUSTOM_BANDS] = normalizeEqualizerBands(value).joinToString(",")
+        prefs[Keys.EQUALIZER_PRESET] = EqualizerPreset.CUSTOM.name
+        prefs[Keys.EQUALIZER_ENABLED] = true
+    }
     suspend fun reset() = context.harukiDataStore.edit { it.clear() }
+
+    private fun parseEqualizerBands(raw: String?): List<Float> {
+        val parsed = raw.orEmpty().split(',').mapNotNull { it.toFloatOrNull() }
+        return normalizeEqualizerBands(parsed)
+    }
+
+    private fun normalizeEqualizerBands(values: List<Float>): List<Float> =
+        List(5) { index -> (values.getOrNull(index) ?: 0f).coerceIn(-10f, 10f) }
 }

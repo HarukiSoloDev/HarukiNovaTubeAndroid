@@ -64,7 +64,10 @@ data class AppSettings(
     val wifiOnly: Boolean = false,
     val autoplayNext: Boolean = true,
     val playbackQuality: String = "Auto",
-    val downloadSpeedMode: DownloadSpeedMode = DownloadSpeedMode.AUTO
+    val downloadSpeedMode: DownloadSpeedMode = DownloadSpeedMode.AUTO,
+    val equalizerEnabled: Boolean = false,
+    val equalizerPreset: EqualizerPreset = EqualizerPreset.FLAT,
+    val equalizerCustomBands: List<Float> = listOf(0f, 0f, 0f, 0f, 0f)
 )
 
 

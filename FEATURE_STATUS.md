@@ -1,32 +1,32 @@
-# Feature Status — v0.8.1
+# Feature Status — v0.8.2
 
-## Performance / playback
+## Equalizer / audio
+- PASS — native Android per-audio-session Equalizer integrated with Media3/ExoPlayer.
+- PASS — Flat, Bass Boost, Pop, Rock, Hip-Hop, EDM, Vocal, Podcast, Classical, Movie and Night presets.
+- PASS — persistent Custom 5-band tuning with live player preview.
+- PASS — long-form, active Shorts and downloaded-video playback honor the same EQ setting.
+- PASS — inactive/preloaded Shorts do not retain extra native EQ engines.
+- PASS — device-provided band-level limits are respected and UI curves are safely mapped to hardware bands.
+
+## Premium UI / performance
+- PASS — major tappable cards use short draw-layer press scale/alpha feedback with normal Compose indication.
+- PASS — bottom navigation / navigation rail icons animate selection with a small scale/lift response.
+- PASS — destination changes use short fade + horizontal slide transitions.
+- PASS — live EQ slider movement previews directly in the active playback service; persistent DataStore writes occur on slider release rather than every drag frame.
+- PASS — EQ settings collection is reduced to distinct equalizer state, and long-form back buffer is trimmed to 12 s.
+
+## Playback / download
 - PASS — Media3 1.11.0 with OkHttp playback data source and existing disk cache.
-- PASS — long-form buffer retuned to 45–120 s with 2.5 s startup and 6 s post-rebuffer target.
+- PASS — long-form forward buffer remains 45–120 s with 2.5 s startup and 6 s post-rebuffer target.
 - PASS — downloads never intentionally drop to zero active workers while playback is active.
 - PASS — opening Shorts preserves the long-form playback service and exact Watch/miniplayer return state.
-- PASS — existing background playback, notification restore, Prev/Next, alternate audio, captions and autoplay retained.
+- PASS — video and separate audio retain bounded 8 MiB byte-range chunk downloading.
+- PASS — shared OkHttp client, adaptive connections, Auto/Turbo/Playback Priority and MP3 mode retained.
 
-## Download engine
-- PASS — video and separate audio use bounded 8 MiB byte-range chunks when the endpoint supports Content-Range.
-- PASS — shared OkHttp client for connection reuse.
-- PASS — adaptive per-download connection count at chunk boundaries.
-- PASS — Auto, Turbo and Playback Priority modes retained.
-- PASS — MP3 mode downloads source audio through the same chunk engine before 192 kbps transcoding.
-- PASS — queue pause/cancel/retry and download notifications retained.
-
-## Nova AI
-- PASS — Fast mode: low-latency first-page search with no slow metadata enrichment.
-- PASS — Smart mode: balanced query coverage with limited deep-page/entity/metadata checks.
-- PASS — Deep mode: up to 16 strategies plus extra pages, channels/playlists and metadata enrichment.
-- PASS — History, Saved, Downloads and local playlists remain optional ranking evidence; wider YouTube search remains primary.
-
-## Adaptive UI / library
-- PASS — compact phone bottom navigation and larger-screen navigation rail.
-- PASS — multi-column feeds and constrained wide-screen Watch/Shorts layouts retained.
-- PASS — local playlists, offline reuse and Downloaded badges retained.
-- PASS — Downloads performance card and Nova AI search-mode controls added.
+## Nova AI / library
+- PASS — Fast, Smart and Deep search modes retained.
+- PASS — local playlists, offline reuse, Downloaded badges, history/saved/download ranking evidence retained.
 
 ## Build validation
-- PASS — project preflight checks 50 Kotlin files, XML parsing, delimiter balance, critical playback/download/AI/navigation regressions, AndroidX/TAndroidLame compatibility guard, removed ad/TikTok markers and obvious embedded secrets.
+- PASS — project preflight checks all Kotlin files, XML parsing, delimiter balance, Equalizer integration, premium interaction hooks, critical playback/download/AI/navigation regressions, AndroidX/TAndroidLame compatibility guard, removed ad/TikTok markers and obvious embedded secrets.
 - NOTE — final Android Gradle compilation must still be run in Android Studio because this sandbox has no Android SDK and its Gradle wrapper cannot download the distribution here.

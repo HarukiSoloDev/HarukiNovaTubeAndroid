@@ -1,25 +1,28 @@
-# NovaTube v0.8.1 Performance Research Notes
+# NovaTube v0.8.2 Equalizer + Performance Research Notes
 
-This release focuses on changes that directly match observed NovaTube bottlenecks rather than adding large new frameworks.
+This release adds visible polish without trading away responsiveness.
 
-## Download engine
-- YouTube/googlevideo transfers can throttle large or open-ended HTTP requests. Current yt-dlp guidance and recent field reports show bounded chunks below roughly 10 MB can avoid the slow path. NovaTube therefore uses 8 MiB byte-range chunks when Content-Range support is confirmed.
-- Audio is now chunked too. v0.8.0 accelerated the video side but could still download the separate audio stream as one open-ended request, matching the reported ~32 KB/s symptom.
-- Connections adapt at chunk boundaries. Playback keeps priority, but downloads are never deliberately reduced to zero workers.
-- A shared OkHttp client reuses connections across WorkManager downloads.
+## Equalizer architecture
+- Android's native `Equalizer` effect attaches to a specific audio session. NovaTube gives each relevant ExoPlayer a session ID and attaches one lightweight EQ engine to that session.
+- NovaTube exposes a familiar five-point curve, then interpolates it over however many EQ bands the phone actually reports and clamps levels to the device-supported range.
+- Popular presets use explicit portable curves instead of relying on device/manufacturer preset names, which can differ by device.
+- Only the active Short owns an EQ engine. Neighboring Shorts may be preloaded for responsiveness but do not hold additional native effects.
 
-## Playback
-- Media3 remains on 1.11.0. Long-form startup/rebuffer thresholds were reduced while retaining a substantial forward buffer.
-- Entering Shorts pauses but does not destroy the long-form MediaSession/ExoPlayer. Back restores the existing Watch session instead of re-extracting/recreating it.
+## Interaction / Compose performance
+- Press feedback uses `graphicsLayer` scale/alpha transforms so the visual response happens at the draw layer rather than forcing repeated layout changes.
+- Destination transitions are intentionally short (roughly 110–180 ms) so the app feels deliberate without making navigation feel slow.
+- Equalizer slider previews update the active playback engine directly and persist the custom curve only when the drag finishes.
+- The playback service observes a distinct tuple of EQ-only settings rather than reacting to unrelated Settings changes.
 
-## Nova AI
-- Fast: few first-page strategies, no slow per-result metadata enrichment.
-- Smart: balanced search with limited deeper checks.
-- Deep: the full multi-query, extra-page, channel/playlist and metadata search.
-- This follows the common current AI search product split between fast lookup and deeper multi-step research. NovaTube does not embed third-party AI API secrets in the APK.
+## v0.8.1 performance work retained
+- 8 MiB bounded HTTP range chunks for video and separate audio to avoid large/open-ended CDN slow paths.
+- Playback-safe download scheduling keeps one worker progressing while extra workers yield bandwidth to playback.
+- Shared OkHttp connection reuse and adaptive download concurrency.
+- Long-form Watch preservation when entering Shorts and restoring with Back.
+- Nova AI Fast / Smart / Deep profiles.
 
 ## Sources reviewed
-- Android Media3 documentation: preload, caching, priority/data-source and current 1.11.0 release documentation.
-- Android Compose performance guidance and Baseline Profile documentation.
-- yt-dlp FAQ / issue reports on YouTube HTTP chunk-size throttling and range requests.
-- Perplexity and OpenAI/Google documentation describing fast search versus multi-step/deep research modes.
+- Android `android.media.audiofx.Equalizer` and `AudioManager` documentation.
+- Android Media3 ExoPlayer audio-session APIs.
+- Jetpack Compose animation/performance guidance, including `graphicsLayer` and content transitions.
+- Existing v0.8.1 Media3/download research notes and yt-dlp range-request guidance.

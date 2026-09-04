@@ -40,10 +40,15 @@ fun ShortsScreen(
     initialUrl: String = "",
     savedUrls: Set<String>,
     playbackQualityPreference: String,
+    equalizerEnabled: Boolean,
+    equalizerPreset: EqualizerPreset,
+    equalizerCustomBands: List<Float>,
     downloadByUrl: Map<String, DownloadQueueItem>,
     onBack: () -> Unit,
     onToggleSave: (BrowseVideo) -> Unit,
     onDownload: (BrowseVideo, AnalyzedMedia) -> Unit,
+    onEqualizerEnabled: (Boolean) -> Unit,
+    onEqualizerPreset: (EqualizerPreset) -> Unit,
     bottomBarVisible: Boolean = false,
     adaptive: NovaAdaptiveInfo
 ) {
@@ -123,6 +128,9 @@ fun ShortsScreen(
                             active = index == pagerState.currentPage,
                             saved = SavedVideoStore.canonicalKey(item.url, item.id) in savedUrls,
                             playbackQualityPreference = playbackQualityPreference,
+                            equalizerEnabled = equalizerEnabled,
+                            equalizerPreset = equalizerPreset,
+                            equalizerCustomBands = equalizerCustomBands,
                             commentCount = shortComments?.totalCount ?: 0,
                             downloadState = downloadByUrl[SavedVideoStore.canonicalKey(item.url, item.id)],
                             onToggleSave = onToggleSave,
@@ -131,6 +139,8 @@ fun ShortsScreen(
                                 if (shortComments == null || shortComments.items.isEmpty()) vm.loadShortComments(item.url, reset = true)
                             },
                             onDownload = { media -> onDownload(item, media) },
+                            onEqualizerEnabled = onEqualizerEnabled,
+                            onEqualizerPreset = onEqualizerPreset,
                             onNotInterested = { vm.notInterestedShort(item) },
                             onDontRecommendChannel = { vm.dontRecommendChannel(item) },
                             modifier = if (adaptive.useNavigationRail) {

@@ -13,13 +13,13 @@ def need(text, token, where):
 def text(rel): return (PKG/rel).read_text(encoding='utf-8', errors='ignore')
 
 # Identity / dependencies
-need(GRADLE, 'versionName = "0.8.1"', 'Gradle')
-need(GRADLE, 'versionCode = 810', 'Gradle')
+need(GRADLE, 'versionName = "0.8.2"', 'Gradle')
+need(GRADLE, 'versionCode = 820', 'Gradle')
 need(GRADLE, 'applicationId = "com.harukisolodev.harukistream"', 'Gradle')
 for dep in ['media3-exoplayer:1.11.0','media3-session:1.11.0','media3-datasource-okhttp:1.11.0','NewPipeExtractor:v0.26.5','TAndroidLame:1.1']:
     need(GRADLE, dep, 'Gradle')
 need(GRADLE, 'exclude(group = "com.android.support")', 'TAndroidLame AndroidX exclusion')
-if VERSION != '0.8.1': fail(f'VERSION.txt is {VERSION}, expected 0.8.1')
+if VERSION != '0.8.2': fail(f'VERSION.txt is {VERSION}, expected 0.8.2')
 strings=(ROOT/'app/src/main/res/values/strings.xml').read_text(encoding='utf-8')
 need(strings, 'Haruki NovaTube', 'strings.xml')
 need(strings, '<string name="launcher_name">NovaTube</string>', 'launcher label')
@@ -32,7 +32,8 @@ required=[
  'ui/screens/ShortsScreen.kt','ui/screens/VerticalNativePlayer.kt','ui/screens/WatchScreen.kt','ui/screens/YouTubeScreen.kt',
  'ui/BrowseViewModel.kt','ui/HarukiViewModel.kt','ui/HarukiApp.kt','extractor/BrowseRepository.kt','extractor/HarukiExtractor.kt',
  'player/PlaybackService.kt','player/PlaybackDataSourceFactory.kt','player/PlaybackSelectionStore.kt','download/DownloadWorker.kt',
- 'download/DownloadRequestStore.kt','download/DownloadActionReceiver.kt','download/DownloadLaunch.kt'
+ 'download/DownloadRequestStore.kt','download/DownloadActionReceiver.kt','download/DownloadLaunch.kt',
+ 'data/AudioEqualizer.kt','player/NovaEqualizerEngine.kt','ui/screens/EqualizerScreen.kt','ui/components/PremiumInteractions.kt'
 ]
 for rel in required:
     if not (PKG/rel).exists(): fail('Missing '+rel)
@@ -79,6 +80,7 @@ reco=text('data/RecommendationStore.kt'); playlists=text('data/LocalPlaylistStor
 worker=text('download/DownloadWorker.kt'); mp3=text('download/Mp3Transcoder.kt'); req=text('download/DownloadRequestStore.kt')
 playback=text('player/PlaybackService.kt'); cache=text('player/PlaybackDataSourceFactory.kt'); settings=text('ui/screens/SettingsScreen.kt')
 extractor=text('extractor/HarukiExtractor.kt'); hvm=text('ui/HarukiViewModel.kt')
+eqdata=text('data/AudioEqualizer.kt'); eqengine=text('player/NovaEqualizerEngine.kt'); eqscreen=text('ui/screens/EqualizerScreen.kt'); interactions=text('ui/components/PremiumInteractions.kt'); manifest=(ROOT/'app/src/main/AndroidManifest.xml').read_text(encoding='utf-8')
 
 # Adaptive UI / navigation
 for token in ['NovaWindowClass','CAR_LANDSCAPE','useNavigationRail','feedColumns','largeTouchTargets']:
@@ -131,8 +133,33 @@ for banned in ['viral shorts','funny shorts','popular videos']:
 
 # Nova AI
 for token in ['LOCAL_PLAYLIST','NovaAiSearchMode.FAST','NovaAiSearchMode.SMART','NovaAiSearchMode.DEEP','SearchProfile','profile.maxQueries','profile.enrichTop','stableKey(video)']:
-    need(ai, token, 'Nova AI v0.8.1')
+    need(ai, token, 'Nova AI modes')
 need(vm, 'NovaAiMatchSource.LOCAL_PLAYLIST', 'Nova AI playlist evidence')
+
+# Equalizer / premium interaction polish
+need(manifest, 'android.permission.MODIFY_AUDIO_SETTINGS', 'Equalizer manifest permission')
+for token in ['BASS_BOOST','POP','ROCK','HIP_HOP','EDM','VOCAL','PODCAST','CLASSICAL','MOVIE','NIGHT','CUSTOM','val popular']:
+    need(eqdata, token, 'Equalizer presets')
+for token in ['Equalizer(0, audioSessionId)','bandLevelRange','numberOfBands','getCenterFreq','setBandLevel','applyCurve','release()']:
+    need(eqengine, token, 'Native equalizer engine')
+for token in ['generateAudioSessionId()','setAudioSessionId(audioSessionId)','NovaEqualizerEngine(audioSessionId)','distinctUntilChanged()','previewEqualizer']:
+    need(playback, token, 'Long-form equalizer integration')
+for token in ['Nova Equalizer','Popular presets','Custom 5-band tuning','PlaybackService.previewEqualizer','onValueChangeFinished','EqualizerPreset.popular']:
+    need(eqscreen, token, 'Equalizer UI')
+for token in ['EqualizerPreset','equalizerEnabled','equalizerPreset','equalizerCustomBands']:
+    need(text('data/Models.kt'), token, 'Equalizer settings model')
+for token in ['equalizer_enabled','equalizer_preset','equalizer_custom_bands','setEqualizerEnabled','setEqualizerPreset','setEqualizerCustomBands']:
+    need(text('data/SettingsRepository.kt'), token, 'Equalizer persistence')
+for token in ['equalizerEnabled','equalizerPreset','equalizerCustomBands','NovaEqualizerEngine','if (active)']:
+    need(text('ui/screens/VerticalNativePlayer.kt'), token, 'Shorts equalizer integration')
+for token in ['settings: AppSettings','generateAudioSessionId()','NovaEqualizerEngine(audioSessionId)']:
+    need(text('ui/screens/DownloadsScreen.kt'), token, 'Downloaded playback equalizer')
+for token in ['premiumClickable','collectIsPressedAsState','graphicsLayer','animateFloatAsState']:
+    need(interactions, token, 'Premium press interaction')
+for token in ['AnimatedContent','fadeIn','slideInHorizontally','NovaNavIcon','animateFloatAsState','graphicsLayer','Destination.EQUALIZER']:
+    need(app, token, 'Premium navigation polish')
+if all_text.count('.premiumClickable') < 6:
+    fail('Premium press interaction is not applied broadly enough to tappable content')
 
 # Playback / 720p+
 for token in ['setBufferDurationsMsForStreaming(45_000, 120_000, 2_500, 6_000)','if (preferredHeight < 720)','bufferedAhead >= 55_000L','ahead < 35_000L','pauseForShorts','resumeAfterShorts']:
@@ -154,7 +181,7 @@ if vm.count('if (queueItems.isNotEmpty() && queuePosition == queueItems.lastInde
 need(playback, '.setSlots(CommandButton.SLOT_FORWARD)', 'User Android Studio notification slot fix')
 need(text('player/PlaybackSelectionStore.kt'), 'qualityByMediaId', 'Per-video quality persistence')
 for token in ['downloadChunkedRanges','HTTP_CHUNK_BYTES = 8L * 1024L * 1024L','Range", "bytes=0-0','ByteArray(512 * 1024)','registerDownloadLane']:
-    need(worker, token, 'v0.8.1 smart chunk downloads')
+    need(worker, token, 'smart chunk downloads')
 if '.setSubText("Haruki NovaTube")' in worker:
     fail('Download notification repeats app name')
 
@@ -162,5 +189,5 @@ if errors:
     print('PRECHECK FAILED')
     for e in errors: print(' -', e)
     sys.exit(1)
-print('PRECHECK OK — Haruki NovaTube Android v0.8.1')
-print(f'Checked {len(all_kt)} Kotlin files: adaptive UI, offline reuse, MP3, playlists, recommendations, Nova AI modes, playback/Shorts restore, smart downloads, prior critical regressions, XML, secrets/ads, and delimiter balance.')
+print('PRECHECK OK — Haruki NovaTube Android v0.8.2')
+print(f'Checked {len(all_kt)} Kotlin files: adaptive UI, offline reuse, MP3, playlists, recommendations, Nova AI modes, equalizer, premium interactions, playback/Shorts restore, smart downloads, prior critical regressions, XML, secrets/ads, and delimiter balance.')

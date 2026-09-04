@@ -2,7 +2,7 @@
 setlocal
 cd /d "%~dp0"
 echo ==============================================
-echo Haruki NovaTube Android v0.8.1 - Full Build Check
+echo Haruki NovaTube Android v0.8.2 - Full Build Check
 echo ==============================================
 echo.
 

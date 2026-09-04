@@ -1,5 +1,17 @@
 # Changelog
 
+## 0.8.2
+- Added Nova Equalizer using Android's native per-audio-session Equalizer with Media3 audio-session IDs.
+- Added popular presets: Flat, Bass Boost, Pop, Rock, Hip-Hop, EDM, Vocal, Podcast, Classical, Movie and Night.
+- Added Custom 5-band tuning with live preview and persistent settings.
+- Applied EQ to long-form playback, the active Short and downloaded-video playback while avoiding extra native EQ engines on preloaded inactive Shorts.
+- Added a dedicated Equalizer page under You plus quick EQ menus in long-form and Shorts players.
+- Added lightweight premium press feedback to major cards/actions and animated bottom/rail navigation icons.
+- Added short destination fade/slide transitions so navigation no longer feels abrupt.
+- Reduced long-form back buffer from 15 s to 12 s and kept EQ observation/preview paths lightweight.
+- Retained v0.8.1 playback-safe 8 MiB chunk downloading, Nova AI modes and Shorts Watch restoration.
+- Bumped versionCode to 820.
+
 ## 0.8.1
 - Reworked video/audio downloads around bounded 8 MiB HTTP range chunks to avoid large-request CDN throttling.
 - Added adaptive per-download connection scaling and shared OkHttp connection reuse.

@@ -11,8 +11,8 @@ android {
         applicationId = "com.harukisolodev.harukistream"
         minSdk = 26
         targetSdk = 37
-        versionCode = 810
-        versionName = "0.8.1"
+        versionCode = 820
+        versionName = "0.8.2"
     }
 
     buildFeatures {

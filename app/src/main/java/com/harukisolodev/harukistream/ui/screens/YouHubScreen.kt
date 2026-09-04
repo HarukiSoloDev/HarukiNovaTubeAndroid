@@ -21,10 +21,11 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.harukisolodev.harukistream.BuildConfig
 import com.harukisolodev.harukistream.core.HarukiConstants
+import com.harukisolodev.harukistream.ui.components.premiumClickable
 import com.harukisolodev.harukistream.ui.theme.*
 
 @Composable
-fun YouHubScreen(onSettings: () -> Unit, onAbout: () -> Unit) {
+fun YouHubScreen(onEqualizer: () -> Unit, onSettings: () -> Unit, onAbout: () -> Unit) {
     val context = LocalContext.current
     LazyColumn(
         Modifier.fillMaxSize().background(HarukiBg).statusBarsPadding(),
@@ -70,6 +71,7 @@ fun YouHubScreen(onSettings: () -> Unit, onAbout: () -> Unit) {
                 }
             }
         }
+        item { YouEntry(Icons.Rounded.GraphicEq, "Equalizer", "Popular presets and custom 5-band tuning", onEqualizer) }
         item { YouEntry(Icons.Rounded.Settings, "Settings", "Playback, quality, downloads and preferences", onSettings) }
         item { YouEntry(Icons.Rounded.Info, "About Haruki NovaTube", "Version ${BuildConfig.VERSION_NAME} • project information", onAbout) }
         item {
@@ -90,7 +92,7 @@ fun YouHubScreen(onSettings: () -> Unit, onAbout: () -> Unit) {
 @Composable
 private fun YouEntry(icon: ImageVector, title: String, subtitle: String, onClick: () -> Unit) {
     Surface(
-        modifier = Modifier.fillMaxWidth().clickable(onClick = onClick),
+        modifier = Modifier.fillMaxWidth().premiumClickable(onClick = onClick),
         color = HarukiCard,
         shape = RoundedCornerShape(21.dp),
         border = androidx.compose.foundation.BorderStroke(1.dp, HarukiBorderSoft)

@@ -1,18 +1,20 @@
-Haruki NovaTube Android v0.8.1 — Performance Release Recheck
-============================================================
+Haruki NovaTube Android v0.8.2 — Equalizer + Performance Recheck
+================================================================
 
-PASS — versionName 0.8.1 / versionCode 810.
-PASS — project preflight completed across 50 Kotlin source files.
+PASS — versionName 0.8.2 / versionCode 820.
+PASS — project preflight completed across 54 Kotlin source files.
 PASS — XML and Kotlin delimiter checks completed.
 PASS — previous topicSignature / TAndroidLame API / AndroidX exclusion fixes retained.
-PASS — Shorts no longer stops PlaybackService; Back restoration path is present.
-PASS — long-form load-control thresholds retuned for faster startup/rebuffer recovery.
-PASS — download coordinator guarantees at least one active worker during playback.
-PASS — video and audio paths both use bounded 8 MiB chunk downloads when range support is available.
-PASS — adaptive connections and queue-lane registration/cancellation guards present.
-PASS — Nova AI Fast / Smart / Deep profiles and UI controls present.
-PASS — Downloads performance status card and memoized Saved-key set present.
+PASS — native Equalizer engine attaches to Media3 audio-session IDs and clamps to device band limits.
+PASS — popular presets and persistent Custom 5-band tuning are present.
+PASS — long-form, active Shorts and downloaded playback EQ paths are present; inactive preloaded Shorts do not keep EQ engines alive.
+PASS — live EQ slider preview avoids DataStore writes on every drag frame; preset/custom persistence is performed in a single edit transaction.
+PASS — premium press feedback uses graphicsLayer scale/alpha and normal Compose indication.
+PASS — destination fade/slide and navigation-icon selection animations are present.
+PASS — long-form back buffer reduced to 12 s while v0.8.1 startup/rebuffer thresholds remain.
+PASS — Shorts Watch restoration and playback-safe 8 MiB video/audio chunk downloads remain guarded.
+PASS — Nova AI Fast / Smart / Deep profiles remain present.
 
 Gradle compile status:
-- NOT RUN in this sandbox. The wrapper attempted to fetch Gradle 9.5.0 but network/DNS access is unavailable, and no Android SDK is installed.
+- NOT RUN in this sandbox. No Android SDK is installed, and the Gradle wrapper requires a distribution download that is unavailable here.
 - Run VERIFY_BUILD.bat or :app:assembleDebug in Android Studio for the final device/toolchain compile.
