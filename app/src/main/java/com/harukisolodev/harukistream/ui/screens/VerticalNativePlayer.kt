@@ -339,13 +339,9 @@ internal fun VerticalNativePlayer(
                         trailingIcon = { if (!equalizerEnabled) Icon(Icons.Rounded.Check, null, tint = HarukiPrimary) },
                         onClick = { onEqualizerEnabled(false); equalizerMenu = false }
                     )
-                    listOf(
-                        EqualizerPreset.FLAT, EqualizerPreset.BASS_BOOST, EqualizerPreset.POP,
-                        EqualizerPreset.ROCK, EqualizerPreset.HIP_HOP, EqualizerPreset.EDM,
-                        EqualizerPreset.VOCAL, EqualizerPreset.PODCAST, EqualizerPreset.MOVIE
-                    ).forEach { preset ->
+                    EqualizerPreset.selectable.forEach { preset ->
                         DropdownMenuItem(
-                            text = { Text(preset.displayName, color = HarukiText) },
+                            text = { Text(if (preset.popularChoice) "${preset.displayName}  •  Popular" else preset.displayName, color = HarukiText) },
                             trailingIcon = { if (equalizerEnabled && equalizerPreset == preset) Icon(Icons.Rounded.Check, null, tint = HarukiPrimary) },
                             onClick = { onEqualizerPreset(preset); equalizerMenu = false }
                         )

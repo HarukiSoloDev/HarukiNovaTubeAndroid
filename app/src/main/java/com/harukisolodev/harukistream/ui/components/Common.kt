@@ -37,6 +37,7 @@ import kotlinx.coroutines.withContext
 import okhttp3.OkHttpClient
 import okhttp3.Cache
 import java.util.concurrent.TimeUnit
+import java.util.concurrent.ConcurrentHashMap
 import okhttp3.Request
 
 @Composable
@@ -194,10 +195,11 @@ fun ChoiceDropdown(
 
 private object RemoteImageLoader {
     private val maxKb = (Runtime.getRuntime().maxMemory() / 1024L).toInt().coerceAtLeast(16 * 1024)
-    private val cache = object : LruCache<String, Bitmap>(maxKb / 12) {
+    private val cache = object : LruCache<String, Bitmap>(maxKb / 16) {
         override fun sizeOf(key: String, value: Bitmap): Int = value.byteCount / 1024
     }
     @Volatile private var sharedClient: OkHttpClient? = null
+    private val urlLocks = ConcurrentHashMap<String, Any>()
 
     private fun client(context: android.content.Context): OkHttpClient {
         sharedClient?.let { return it }
@@ -216,25 +218,36 @@ private object RemoteImageLoader {
 
     fun load(context: android.content.Context, url: String): Bitmap? {
         cached(url)?.let { return it }
-        val request = Request.Builder()
-            .url(url)
-            .header("User-Agent", HarukiConstants.USER_AGENT)
-            .build()
-        return runCatching {
-            client(context).newCall(request).execute().use { response ->
-                if (!response.isSuccessful) return@use null
-                val bytes = response.body.bytes()
-                val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
-                BitmapFactory.decodeByteArray(bytes, 0, bytes.size, bounds)
-                var sample = 1
-                while (bounds.outWidth / sample > 1080 || bounds.outHeight / sample > 1080) sample *= 2
-                val options = BitmapFactory.Options().apply {
-                    inSampleSize = sample.coerceAtLeast(1)
-                    inPreferredConfig = Bitmap.Config.RGB_565
-                }
-                BitmapFactory.decodeByteArray(bytes, 0, bytes.size, options)
+        val lock = urlLocks.getOrPut(url) { Any() }
+        return try {
+            synchronized(lock) {
+                cached(url)?.let { return@synchronized it }
+                val request = Request.Builder()
+                    .url(url)
+                    .header("User-Agent", HarukiConstants.USER_AGENT)
+                    .build()
+                runCatching {
+                    client(context).newCall(request).execute().use { response ->
+                        if (!response.isSuccessful) return@use null
+                        val bytes = response.body.bytes()
+                        val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
+                        BitmapFactory.decodeByteArray(bytes, 0, bytes.size, bounds)
+                        var sample = 1
+                        // Feed/Shorts thumbnails do not need full 1080p decoded bitmaps. A
+                        // 720px cap substantially cuts bitmap RAM and decode work while staying
+                        // sharp on phone/tablet cards.
+                        while (bounds.outWidth / sample > 720 || bounds.outHeight / sample > 720) sample *= 2
+                        val options = BitmapFactory.Options().apply {
+                            inSampleSize = sample.coerceAtLeast(1)
+                            inPreferredConfig = Bitmap.Config.RGB_565
+                        }
+                        BitmapFactory.decodeByteArray(bytes, 0, bytes.size, options)
+                    }
+                }.getOrNull()?.also { bitmap -> synchronized(cache) { cache.put(url, bitmap) } }
             }
-        }.getOrNull()?.also { bitmap -> synchronized(cache) { cache.put(url, bitmap) } }
+        } finally {
+            urlLocks.remove(url, lock)
+        }
     }
 }
 

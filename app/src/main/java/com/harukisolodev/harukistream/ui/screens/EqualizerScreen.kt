@@ -5,13 +5,14 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.GraphicEq
 import androidx.compose.material.icons.rounded.Headphones
 import androidx.compose.material.icons.rounded.Tune
+import androidx.compose.material.icons.rounded.KeyboardArrowDown
+import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -35,6 +36,7 @@ fun EqualizerScreen(vm: HarukiViewModel, settings: AppSettings, onBack: () -> Un
         settings.equalizerPreset.bandsDb
     }
     var tuningCurve by remember { mutableStateOf(selectedCurve) }
+    var presetMenuExpanded by remember { mutableStateOf(false) }
 
     LaunchedEffect(settings.equalizerPreset, settings.equalizerCustomBands) {
         tuningCurve = selectedCurve
@@ -92,33 +94,62 @@ fun EqualizerScreen(vm: HarukiViewModel, settings: AppSettings, onBack: () -> Un
             }
 
             item {
-                Text("Popular presets", color = HarukiText, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
-                Text("Quick setups for the sound people commonly want.", color = HarukiMuted, style = MaterialTheme.typography.bodySmall)
+                Text("Equalizer preset", color = HarukiText, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+                Text("Choose from researched Android-style genre presets and Nova listening modes.", color = HarukiMuted, style = MaterialTheme.typography.bodySmall)
+                Text("Popular = a preset style commonly offered by Android/Samsung audio EQs; it is not a live user ranking.", color = HarukiMuted2, style = MaterialTheme.typography.labelSmall)
             }
 
             item {
-                LazyRow(horizontalArrangement = Arrangement.spacedBy(9.dp)) {
-                    items(EqualizerPreset.popular, key = { it.name }) { preset ->
-                        val selected = settings.equalizerEnabled && settings.equalizerPreset == preset
-                        FilterChip(
-                            selected = selected,
-                            onClick = {
-                                tuningCurve = preset.bandsDb
-                                vm.setEqualizerPreset(preset)
-                                PlaybackService.previewEqualizer(true, preset.bandsDb)
-                            },
-                            leadingIcon = if (selected) {
-                                { Icon(Icons.Rounded.Headphones, null, modifier = Modifier.size(17.dp)) }
-                            } else null,
-                            label = { Text(preset.displayName) },
-                            colors = FilterChipDefaults.filterChipColors(
-                                selectedContainerColor = HarukiPrimary,
-                                selectedLabelColor = Color.White,
-                                selectedLeadingIconColor = Color.White,
-                                containerColor = HarukiCard,
-                                labelColor = HarukiText
+                Box(Modifier.fillMaxWidth()) {
+                    Surface(
+                        onClick = { presetMenuExpanded = true },
+                        modifier = Modifier.fillMaxWidth(),
+                        color = HarukiCard,
+                        shape = RoundedCornerShape(18.dp),
+                        border = BorderStroke(1.dp, if (settings.equalizerEnabled) HarukiPrimary.copy(alpha = .55f) else HarukiBorderSoft)
+                    ) {
+                        Row(Modifier.fillMaxWidth().padding(horizontal = 15.dp, vertical = 13.dp), verticalAlignment = Alignment.CenterVertically) {
+                            Icon(Icons.Rounded.GraphicEq, null, tint = HarukiPrimary)
+                            Spacer(Modifier.width(11.dp))
+                            Column(Modifier.weight(1f)) {
+                                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(7.dp)) {
+                                    Text(settings.equalizerPreset.displayName, color = HarukiText, fontWeight = FontWeight.Bold)
+                                    if (settings.equalizerPreset.popularChoice) {
+                                        Surface(color = HarukiPrimary.copy(alpha = .14f), shape = RoundedCornerShape(999.dp)) {
+                                            Text("POPULAR", color = HarukiPrimary, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold, modifier = Modifier.padding(horizontal = 7.dp, vertical = 3.dp))
+                                        }
+                                    }
+                                }
+                                Text(settings.equalizerPreset.description, color = HarukiMuted, style = MaterialTheme.typography.bodySmall, maxLines = 2)
+                            }
+                            Icon(Icons.Rounded.KeyboardArrowDown, "Choose preset", tint = HarukiMuted)
+                        }
+                    }
+                    DropdownMenu(
+                        expanded = presetMenuExpanded,
+                        onDismissRequest = { presetMenuExpanded = false },
+                        containerColor = HarukiCard2
+                    ) {
+                        EqualizerPreset.selectable.forEach { preset ->
+                            DropdownMenuItem(
+                                text = {
+                                    Column {
+                                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                                            Text(preset.displayName, color = HarukiText, fontWeight = if (preset == settings.equalizerPreset) FontWeight.Bold else FontWeight.Medium)
+                                            if (preset.popularChoice) Text("Popular", color = HarukiPrimary, style = MaterialTheme.typography.labelSmall, fontWeight = FontWeight.Bold)
+                                        }
+                                        Text(preset.description, color = HarukiMuted, style = MaterialTheme.typography.labelSmall, maxLines = 1)
+                                    }
+                                },
+                                trailingIcon = { if (settings.equalizerEnabled && settings.equalizerPreset == preset) Icon(Icons.Rounded.Check, null, tint = HarukiPrimary) },
+                                onClick = {
+                                    tuningCurve = preset.bandsDb
+                                    vm.setEqualizerPreset(preset)
+                                    PlaybackService.previewEqualizer(true, preset.bandsDb)
+                                    presetMenuExpanded = false
+                                }
                             )
-                        )
+                        }
                     }
                 }
             }

@@ -117,6 +117,7 @@ data class BrowseState(
     val youtubeSearchPlaylists: List<BrowseEntity> = emptyList(),
     val youtubeSearchSuggestion: String = "",
     val youtubeSuggestions: List<String> = emptyList(),
+    val youtubeVideoSuggestions: List<BrowseVideo> = emptyList(),
     val youtubeShorts: List<BrowseVideo> = emptyList(),
     val youtubeLoading: Boolean = false,
     val youtubeLoadingMore: Boolean = false,

@@ -68,6 +68,7 @@ import com.harukisolodev.harukistream.ui.HarukiViewModel
 import com.harukisolodev.harukistream.ui.NovaAdaptiveInfo
 import com.harukisolodev.harukistream.ui.components.LinkifiedText
 import com.harukisolodev.harukistream.ui.components.RemoteImage
+import com.harukisolodev.harukistream.ui.components.premiumClickable
 import com.harukisolodev.harukistream.ui.components.formatDuration
 import com.harukisolodev.harukistream.ui.theme.*
 import kotlinx.coroutines.delay
@@ -447,6 +448,12 @@ fun WatchScreen(
                         }
                     }
 
+                    val playlistMembership = remember(playlists, item?.url, item?.id) {
+                        val current = item ?: return@remember emptyList<LocalPlaylist>()
+                        val key = SavedVideoStore.canonicalKey(current.url, current.id)
+                        playlists.filter { playlist -> playlist.videos.any { SavedVideoStore.canonicalKey(it.url, it.id) == key } }
+                    }
+
                     Row(
                         Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
                         horizontalArrangement = Arrangement.spacedBy(7.dp)
@@ -457,7 +464,14 @@ fun WatchScreen(
                             if (saved) "Saved" else "Save", Modifier.width(actionWidth), selected = saved
                         ) { item?.let(onToggleSave) }
                         VideoActionButton(
-                            Icons.AutoMirrored.Rounded.PlaylistPlay, "Playlist", Modifier.width(actionWidth)
+                            Icons.AutoMirrored.Rounded.PlaylistPlay,
+                            when {
+                                playlistMembership.isEmpty() -> "Playlist"
+                                playlistMembership.size == 1 -> playlistMembership.first().name.take(13)
+                                else -> "${playlistMembership.size} Playlists"
+                            },
+                            Modifier.width(actionWidth),
+                            selected = playlistMembership.isNotEmpty()
                         ) { showPlaylistPicker = true }
                         VideoActionButton(
                             icon = Icons.AutoMirrored.Rounded.Comment,
@@ -580,7 +594,7 @@ fun WatchScreen(
             video = item, playlists = playlists,
             onDismiss = { showPlaylistPicker = false },
             onCreate = { name -> onCreatePlaylist(name) },
-            onAdd = { playlistId -> onAddToPlaylist(playlistId, item); showPlaylistPicker = false }
+            onAdd = { playlistId -> onAddToPlaylist(playlistId, item) }
         )
     }
 
@@ -782,7 +796,7 @@ private fun VideoActionButton(
 @Composable
 fun MiniPlayerBar(watch: WatchState, onRestore: () -> Unit, onClose: () -> Unit) {
     val item = watch.item ?: return
-    if (watch.media?.videoVariants.isNullOrEmpty() && item.playbackUrl.isBlank()) return
+    if (watch.media?.videoVariants.isNullOrEmpty() && watch.media?.audioVariants.isNullOrEmpty() && item.playbackUrl.isBlank()) return
     val context = LocalContext.current
     var controller by remember { mutableStateOf<MediaController?>(null) }
     var playing by remember { mutableStateOf(false) }
@@ -805,7 +819,7 @@ fun MiniPlayerBar(watch: WatchState, onRestore: () -> Unit, onClose: () -> Unit)
     }
 
     Surface(
-        modifier = Modifier.fillMaxWidth().height(66.dp).clickable(onClick = onRestore),
+        modifier = Modifier.fillMaxWidth().height(66.dp).premiumClickable(onClick = onRestore),
         color = HarukiCard2,
         tonalElevation = 8.dp,
         border = androidx.compose.foundation.BorderStroke(1.dp, HarukiBorder)
@@ -1274,19 +1288,9 @@ private fun HarukiWatchPlayer(
                                 trailingIcon = { if (!equalizerEnabled) Icon(Icons.Rounded.Check, null, tint = HarukiPrimary) },
                                 onClick = { onEqualizerEnabled(false); equalizerMenu = false }
                             )
-                            listOf(
-                                EqualizerPreset.FLAT,
-                                EqualizerPreset.BASS_BOOST,
-                                EqualizerPreset.POP,
-                                EqualizerPreset.ROCK,
-                                EqualizerPreset.HIP_HOP,
-                                EqualizerPreset.EDM,
-                                EqualizerPreset.VOCAL,
-                                EqualizerPreset.PODCAST,
-                                EqualizerPreset.MOVIE
-                            ).forEach { preset ->
+                            EqualizerPreset.selectable.forEach { preset ->
                                 DropdownMenuItem(
-                                    text = { Text(preset.displayName, color = HarukiText) },
+                                    text = { Text(if (preset.popularChoice) "${preset.displayName}  •  Popular" else preset.displayName, color = HarukiText) },
                                     trailingIcon = {
                                         if (equalizerEnabled && equalizerPreset == preset) Icon(Icons.Rounded.Check, null, tint = HarukiPrimary)
                                     },
@@ -1602,15 +1606,22 @@ private fun PlaylistPickerSheet(
             Text("Save to playlist", color = HarukiText, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
             Text(video.title, color = HarukiMuted, maxLines = 1, overflow = TextOverflow.Ellipsis)
             playlists.forEach { playlist ->
-                Surface(onClick = { onAdd(playlist.id) }, color = HarukiCardSoft, shape = RoundedCornerShape(14.dp), border = androidx.compose.foundation.BorderStroke(1.dp, HarukiBorderSoft)) {
+                val key = SavedVideoStore.canonicalKey(video.url, video.id)
+                val alreadyAdded = playlist.videos.any { SavedVideoStore.canonicalKey(it.url, it.id) == key }
+                Surface(
+                    onClick = { if (!alreadyAdded) onAdd(playlist.id) },
+                    color = if (alreadyAdded) HarukiPrimary.copy(alpha = .14f) else HarukiCardSoft,
+                    shape = RoundedCornerShape(14.dp),
+                    border = androidx.compose.foundation.BorderStroke(1.dp, if (alreadyAdded) HarukiPrimary else HarukiBorderSoft)
+                ) {
                     Row(Modifier.fillMaxWidth().padding(13.dp), verticalAlignment = Alignment.CenterVertically) {
                         Icon(Icons.AutoMirrored.Rounded.PlaylistPlay, null, tint = HarukiPrimary)
                         Spacer(Modifier.width(10.dp))
                         Column(Modifier.weight(1f)) {
-                            Text(playlist.name, color = HarukiText, fontWeight = FontWeight.SemiBold)
-                            Text("${playlist.videos.size} videos", color = HarukiMuted, style = MaterialTheme.typography.bodySmall)
+                            Text(playlist.name, color = if (alreadyAdded) HarukiPrimary else HarukiText, fontWeight = FontWeight.SemiBold)
+                            Text(if (alreadyAdded) "Added • ${playlist.videos.size} videos" else "${playlist.videos.size} videos", color = HarukiMuted, style = MaterialTheme.typography.bodySmall)
                         }
-                        Icon(Icons.Rounded.Add, "Add", tint = HarukiPrimary)
+                        Icon(if (alreadyAdded) Icons.Rounded.CheckCircle else Icons.Rounded.Add, if (alreadyAdded) "Added" else "Add", tint = HarukiPrimary)
                     }
                 }
             }

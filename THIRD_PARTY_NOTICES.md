@@ -7,5 +7,5 @@ Haruki NovaTube uses NewPipe Extractor for public YouTube metadata, search/brows
 Haruki NovaTube also uses AndroidX Jetpack, Jetpack Compose, Media3 and OkHttp under their respective open-source licenses. Gradle resolves these dependencies and their license metadata.
 
 ## TAndroidLame / LAME
-NovaTube v0.8.2 uses `com.github.naman14:TAndroidLame:1.1` for optional MP3 encoding.
+NovaTube v0.8.3 uses `com.github.naman14:TAndroidLame:1.1` for optional MP3 encoding.
 TAndroidLame is an Android/Java wrapper around the LAME MP3 encoder and is distributed under GPLv3 terms by its upstream project. Review upstream license obligations before public distribution.

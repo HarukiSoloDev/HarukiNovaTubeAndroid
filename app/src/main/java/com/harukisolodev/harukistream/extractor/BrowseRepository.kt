@@ -90,7 +90,10 @@ class BrowseRepository(
     private val searchSessions = ConcurrentHashMap<String, SearchSession>()
     private val commentSessions = ConcurrentHashMap<String, CommentSession>()
     private val collectionSessions = ConcurrentHashMap<String, CollectionSession>()
+    private data class VideoSuggestionCacheEntry(val items: List<BrowseVideo>, val createdAt: Long = System.currentTimeMillis())
+    private val videoSuggestionCache = ConcurrentHashMap<String, VideoSuggestionCacheEntry>()
     private val cacheLifetimeMs = 7 * 60 * 1000L
+    private val suggestionCacheLifetimeMs = 2 * 60 * 1000L
 
     private val homeQueries = listOf(
         "popular videos",
@@ -106,14 +109,14 @@ class BrowseRepository(
     private var homeGeneration = 0
 
     private val shortsQueries = listOf(
-        "#shorts",
-        "youtube shorts",
-        "funny #shorts",
-        "gaming #shorts",
-        "cars #shorts",
-        "technology #shorts",
-        "music #shorts",
-        "viral #shorts"
+        "technology shorts",
+        "gaming shorts",
+        "cars shorts",
+        "music shorts",
+        "science shorts",
+        "engineering shorts",
+        "film shorts",
+        "travel shorts"
     )
     private var shortsQueryIndex = 0
     private var shortsGeneration = 0
@@ -424,6 +427,30 @@ class BrowseRepository(
             .filter { it.isNotBlank() }
             .distinct()
             .take(10)
+    }
+
+    /** Small direct-video preview used under search predictions. Kept separate from the
+     * full search session so typing never mutates/paginates the user's real results. */
+    fun videoSuggestions(query: String, limit: Int = 3): List<BrowseVideo> {
+        val clean = query.trim()
+        if (clean.length < 3) return emptyList()
+        val key = clean.lowercase(Locale.ROOT)
+        val now = System.currentTimeMillis()
+        videoSuggestionCache[key]?.takeIf { now - it.createdAt < suggestionCacheLifetimeMs }?.let {
+            return it.items.take(limit.coerceIn(1, 5))
+        }
+        val extractor = ServiceList.YouTube.getSearchExtractor(clean)
+        extractor.fetchPage()
+        val items = SearchInfo.getInfo(extractor).relatedItems
+            .mapNotNull { it.toBrowseVideo() }
+            .filterNot { it.looksLive() }
+            .distinctBy { it.url }
+            .take(5)
+        if (videoSuggestionCache.size > 24) {
+            videoSuggestionCache.entries.minByOrNull { it.value.createdAt }?.key?.let(videoSuggestionCache::remove)
+        }
+        videoSuggestionCache[key] = VideoSuggestionCacheEntry(items)
+        return items.take(limit.coerceIn(1, 5))
     }
 
     fun openCollection(entity: BrowseEntity): CollectionPage {

@@ -1,4 +1,4 @@
-# Feature Status — v0.8.2
+# Feature Status — v0.8.3
 
 ## Equalizer / audio
 - PASS — native Android per-audio-session Equalizer integrated with Media3/ExoPlayer.
@@ -30,3 +30,12 @@
 ## Build validation
 - PASS — project preflight checks all Kotlin files, XML parsing, delimiter balance, Equalizer integration, premium interaction hooks, critical playback/download/AI/navigation regressions, AndroidX/TAndroidLame compatibility guard, removed ad/TikTok markers and obvious embedded secrets.
 - NOTE — final Android Gradle compilation must still be run in Android Studio because this sandbox has no Android SDK and its Gradle wrapper cannot download the distribution here.
+
+
+## v0.8.3 additions
+- Shorts/Home interest alignment: implemented
+- Playlist membership highlighting: implemented
+- Downloaded media shared mini-player: implemented
+- Search direct-video suggestions: implemented
+- Equalizer dropdown + expanded presets: implemented
+- Shorts/player UI performance pass: implemented

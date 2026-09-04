@@ -97,7 +97,7 @@ class LocalPlaylistStore(context: Context) {
                 put("videos", videos)
             })
         }
-        prefs.edit().putString(KEY, array.toString()).commit()
+        prefs.edit().putString(KEY, array.toString()).apply()
     }
 
     private fun videosFromJson(array: JSONArray): List<BrowseVideo> = buildList {

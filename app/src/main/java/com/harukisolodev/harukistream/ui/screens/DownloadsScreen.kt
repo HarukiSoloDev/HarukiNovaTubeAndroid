@@ -1,6 +1,5 @@
 package com.harukisolodev.harukistream.ui.screens
 
-import android.media.AudioManager
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -13,28 +12,19 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.viewinterop.AndroidView
-import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.harukisolodev.harukistream.data.AppSettings
-import com.harukisolodev.harukistream.data.EqualizerPreset
 import com.harukisolodev.harukistream.data.DownloadQueueItem
 import com.harukisolodev.harukistream.data.DownloadQueueStatus
 import com.harukisolodev.harukistream.data.LibraryItem
 import com.harukisolodev.harukistream.ui.HarukiViewModel
-import com.harukisolodev.harukistream.player.NovaEqualizerEngine
 import com.harukisolodev.harukistream.ui.components.RemoteImage
 import com.harukisolodev.harukistream.ui.components.formatBytes
 import com.harukisolodev.harukistream.ui.components.formatSpeed
 import com.harukisolodev.harukistream.ui.theme.*
-import androidx.media3.common.MediaItem
-import androidx.media3.exoplayer.ExoPlayer
-import androidx.media3.ui.AspectRatioFrameLayout
-import androidx.media3.ui.PlayerView
 
 @Composable
 fun DownloadsScreen(
@@ -42,9 +32,9 @@ fun DownloadsScreen(
     queue: List<DownloadQueueItem>,
     library: List<LibraryItem>,
     settings: AppSettings,
-    onMenu: () -> Unit
+    onMenu: () -> Unit,
+    onPlayDownloaded: (LibraryItem) -> Unit
 ) {
-    var playingItem by remember { mutableStateOf<LibraryItem?>(null) }
     val active = queue.filter { it.status == DownloadQueueStatus.RUNNING || it.status == DownloadQueueStatus.QUEUED || it.status == DownloadQueueStatus.PAUSED }
     val finished = queue.filter { it.status == DownloadQueueStatus.SUCCEEDED || it.status == DownloadQueueStatus.FAILED || it.status == DownloadQueueStatus.CANCELLED }
     val runningCount = active.count { it.status == DownloadQueueStatus.RUNNING }
@@ -70,7 +60,7 @@ fun DownloadsScreen(
             items(active, key = { it.queueId }) { DownloadQueueCard(it, vm) }
             if (library.isNotEmpty()) {
                 item { Text("Completed (${library.size})", style = MaterialTheme.typography.titleMedium, color = HarukiText, modifier = Modifier.padding(top = 10.dp)) }
-                items(library.take(40), key = { "lib-${it.id}" }) { LibraryDownloadCard(it, onPlay = { playingItem = it }) }
+                items(library.take(40), key = { "lib-${it.id}" }, contentType = { "downloaded" }) { LibraryDownloadCard(it, onPlay = onPlayDownloaded) }
             }
             if (finished.isNotEmpty()) {
                 item { Text("Recent queue", style = MaterialTheme.typography.titleMedium, color = HarukiText, modifier = Modifier.padding(top = 10.dp)) }
@@ -79,9 +69,6 @@ fun DownloadsScreen(
         }
     }
 
-    playingItem?.let { item ->
-        DownloadedPlayerDialog(item = item, settings = settings, onDismiss = { playingItem = null })
-    }
 }
 
 @Composable
@@ -172,64 +159,6 @@ private fun LibraryDownloadCard(item: LibraryItem, onPlay: (LibraryItem) -> Unit
             }
             IconButton(onClick = { onPlay(item) }) {
                 Icon(Icons.Rounded.PlayCircle, "Play download", tint = HarukiPrimary)
-            }
-        }
-    }
-}
-
-@androidx.annotation.OptIn(androidx.media3.common.util.UnstableApi::class)
-@Composable
-private fun DownloadedPlayerDialog(item: LibraryItem, settings: AppSettings, onDismiss: () -> Unit) {
-    val context = LocalContext.current
-    val audioSessionId = remember(item.uri) {
-        runCatching { context.getSystemService(AudioManager::class.java).generateAudioSessionId() }.getOrDefault(0)
-    }
-    val player = remember(item.uri) {
-        ExoPlayer.Builder(context).build().apply {
-            if (audioSessionId > 0) setAudioSessionId(audioSessionId)
-            setMediaItem(MediaItem.fromUri(item.uri))
-            prepare()
-            playWhenReady = true
-        }
-    }
-    val equalizerEngine = remember(item.uri, audioSessionId) { NovaEqualizerEngine(audioSessionId) }
-    LaunchedEffect(settings.equalizerEnabled, settings.equalizerPreset, settings.equalizerCustomBands) {
-        val curve = if (settings.equalizerPreset == EqualizerPreset.CUSTOM) settings.equalizerCustomBands else settings.equalizerPreset.bandsDb
-        equalizerEngine.applyCurve(settings.equalizerEnabled, curve)
-    }
-    DisposableEffect(player, equalizerEngine) {
-        onDispose {
-            equalizerEngine.release()
-            player.release()
-        }
-    }
-
-    Dialog(onDismissRequest = onDismiss) {
-        Surface(
-            modifier = Modifier.fillMaxWidth(),
-            color = Color.Black,
-            shape = RoundedCornerShape(18.dp),
-            border = androidx.compose.foundation.BorderStroke(1.dp, HarukiBorder)
-        ) {
-            Column {
-                Row(
-                    Modifier.fillMaxWidth().background(HarukiCard).padding(start = 12.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(item.title, color = HarukiText, maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f))
-                    IconButton(onClick = onDismiss) { Icon(Icons.Rounded.Close, "Close player", tint = HarukiText) }
-                }
-                AndroidView(
-                    factory = { ctx ->
-                        PlayerView(ctx).apply {
-                            this.player = player
-                            useController = true
-                            resizeMode = AspectRatioFrameLayout.RESIZE_MODE_FIT
-                        }
-                    },
-                    update = { it.player = player },
-                    modifier = Modifier.fillMaxWidth().aspectRatio(16f / 9f).background(Color.Black)
-                )
             }
         }
     }

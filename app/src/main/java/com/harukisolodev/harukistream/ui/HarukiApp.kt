@@ -210,7 +210,22 @@ fun HarukiApp(
                             adaptive = adaptive, downloadedKeys = downloadedKeys,
                             browseVm = browseVm, downloadVm = downloadVm,
                             onBackSubpage = ::navigateBackSection, onNavigate = ::navigateTo,
-                            onOpenVideo = ::openVideo, onOpenShorts = ::openShort
+                            onOpenVideo = ::openVideo, onOpenShorts = ::openShort,
+                            onPlayDownloaded = { libraryItem ->
+                                val offlineVideo = BrowseVideo(
+                                    id = libraryItem.mediaId.ifBlank { libraryItem.id.toString() },
+                                    url = libraryItem.sourceUrl,
+                                    title = libraryItem.title,
+                                    uploader = "Downloaded",
+                                    thumbnailUrl = libraryItem.thumbnailUrl,
+                                    service = "Downloaded"
+                                )
+                                browseVm.openOffline(offlineVideo, libraryItem)
+                                PlaybackService.playDownloaded(context, libraryItem, offlineVideo)
+                                showWatch = false
+                                watchMinimized = true
+                                showShorts = false
+                            }
                         )
                     }
 
@@ -367,7 +382,8 @@ private fun DestinationScreen(
     destination: Destination, browse: BrowseState, history: List<BrowseVideo>, saved: List<BrowseVideo>,
     playlists: List<LocalPlaylist>, queue: List<DownloadQueueItem>, library: List<LibraryItem>, settings: AppSettings,
     adaptive: NovaAdaptiveInfo, downloadedKeys: Set<String>, browseVm: BrowseViewModel, downloadVm: HarukiViewModel,
-    onBackSubpage: () -> Unit, onNavigate: (Destination) -> Unit, onOpenVideo: (BrowseVideo) -> Unit, onOpenShorts: (BrowseVideo?) -> Unit
+    onBackSubpage: () -> Unit, onNavigate: (Destination) -> Unit, onOpenVideo: (BrowseVideo) -> Unit, onOpenShorts: (BrowseVideo?) -> Unit,
+    onPlayDownloaded: (LibraryItem) -> Unit
 ) {
     when (destination) {
         Destination.YOUTUBE -> YouTubeScreen(browse, history, browseVm, onOpenVideo, onOpenShorts, adaptive, downloadedKeys)
@@ -378,7 +394,7 @@ private fun DestinationScreen(
             { onNavigate(Destination.SETTINGS) },
             { onNavigate(Destination.ABOUT) }
         )
-        Destination.DOWNLOADS -> DownloadsScreen(downloadVm, queue, library, settings, onBackSubpage)
+        Destination.DOWNLOADS -> DownloadsScreen(downloadVm, queue, library, settings, onBackSubpage, onPlayDownloaded)
         Destination.PLAYLISTS -> LocalPlaylistsScreen(
             playlists = playlists, onBack = onBackSubpage,
             onPlay = { id, index ->

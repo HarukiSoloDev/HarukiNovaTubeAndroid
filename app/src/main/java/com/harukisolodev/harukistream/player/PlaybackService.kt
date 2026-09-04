@@ -30,6 +30,7 @@ import com.harukisolodev.harukistream.MainActivity
 import com.harukisolodev.harukistream.data.AnalyzedMedia
 import com.harukisolodev.harukistream.data.BrowseVideo
 import com.harukisolodev.harukistream.data.MediaVariant
+import com.harukisolodev.harukistream.data.LibraryItem
 import com.harukisolodev.harukistream.data.SettingsRepository
 import com.harukisolodev.harukistream.data.EqualizerPreset
 import com.harukisolodev.harukistream.extractor.BrowseRepository
@@ -71,6 +72,15 @@ class PlaybackService : MediaSessionService() {
     private var currentBrowseVideo: BrowseVideo? = null
     private val previousStack: MutableList<BrowseVideo> = mutableListOf()
     private var suppressPreviousPush: Boolean = false
+
+    override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        val result = super.onStartCommand(intent, flags, startId)
+        if (intent?.action == ACTION_PLAY_DOWNLOADED) {
+            val args = intent.getBundleExtra(EXTRA_PLAY_BUNDLE)
+            if (args != null) runCatching { playVariant(args) }
+        }
+        return result
+    }
 
     // Use matching custom buttons for both sides so Android renders Previous and Next
     // with the same visual weight instead of mixing a native player action with a
@@ -812,6 +822,42 @@ class PlaybackService : MediaSessionService() {
         fun previewEqualizer(enabled: Boolean, bandsDb: List<Float>) {
             activeInstance?.equalizerEngine?.applyCurve(enabled, bandsDb)
         }
+
+
+        /** Starts a completed local download in the same MediaSession used by the mini player. */
+        fun playDownloaded(context: android.content.Context, item: LibraryItem, video: BrowseVideo) {
+            val mime = item.mimeType.ifBlank { "video/mp4" }
+            val height = Regex("(\\d{3,4})p").find(item.quality)?.groupValues?.getOrNull(1)?.toIntOrNull() ?: 0
+            val args = Bundle().apply {
+                putString(PlaybackCommands.ARG_MEDIA_ID, item.mediaId.ifBlank { video.id })
+                putString(PlaybackCommands.ARG_PAGE_URL, item.sourceUrl)
+                putString(PlaybackCommands.ARG_TITLE, item.title.ifBlank { video.title })
+                putString(PlaybackCommands.ARG_UPLOADER, video.uploader)
+                putString(PlaybackCommands.ARG_ARTWORK, item.thumbnailUrl.ifBlank { video.thumbnailUrl })
+                putString(PlaybackCommands.ARG_VIDEO_URL, item.uri)
+                putString(PlaybackCommands.ARG_VARIANT_ID, "offline:${item.id}")
+                putString(PlaybackCommands.ARG_AUDIO_URL, "")
+                putString(PlaybackCommands.ARG_VIDEO_MIME, mime)
+                putString(PlaybackCommands.ARG_AUDIO_MIME, "audio/mp4")
+                putString(PlaybackCommands.ARG_REQUEST_HEADERS, "")
+                putBoolean(PlaybackCommands.ARG_AUTOPLAY_ENABLED, false)
+                putInt(PlaybackCommands.ARG_PREFERRED_HEIGHT, height)
+                putBoolean(PlaybackCommands.ARG_EXPLICIT_QUALITY, true)
+            }
+            val active = activeInstance
+            if (active != null) {
+                active.playVariant(args)
+            } else {
+                val intent = Intent(context.applicationContext, PlaybackService::class.java).apply {
+                    action = ACTION_PLAY_DOWNLOADED
+                    putExtra(EXTRA_PLAY_BUNDLE, args)
+                }
+                androidx.core.content.ContextCompat.startForegroundService(context.applicationContext, intent)
+            }
+        }
+
+        private const val ACTION_PLAY_DOWNLOADED = "com.harukisolodev.harukistream.PLAY_DOWNLOADED"
+        private const val EXTRA_PLAY_BUNDLE = "play_bundle"
     }
 
 }

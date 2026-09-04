@@ -1,5 +1,19 @@
 # Changelog
 
+## v0.8.3 — Personalization, Playlists, Search & Smoothness
+
+- Shorts now follows the same local interest/topic model as Home much more strongly.
+- Playlist action now glows when the current video belongs to a local playlist.
+- Playlist picker highlights every playlist that already contains the current video.
+- Completed downloads now start in NovaTube's shared MediaSession and remain on Downloads with the mini player.
+- Equalizer presets moved from a horizontal strip to a dropdown menu.
+- Added AOSP-style Classical, Dance, Folk, Metal, Hip-Hop, Jazz, Pop and Rock curves plus Bass Boost, Treble Boost, EDM, R&B, Acoustic, Vocal, Podcast, Movie, Gaming and Night.
+- Popular presets carry a visible Popular badge.
+- Search autocomplete now includes up to three directly playable video suggestions above text predictions.
+- Reduced Shorts off-screen player retention to cut decoder/RAM pressure.
+- Added Lazy list content types in hot feed/download paths for better Compose item reuse.
+- Local playlist writes now use asynchronous SharedPreferences disk persistence to avoid blocking UI interactions.
+
 ## 0.8.2
 - Added Nova Equalizer using Android's native per-audio-session Equalizer with Media3 audio-session IDs.
 - Added popular presets: Flat, Bass Boost, Pop, Rock, Hip-Hop, EDM, Vocal, Podcast, Classical, Movie and Night.

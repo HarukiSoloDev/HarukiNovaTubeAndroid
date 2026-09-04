@@ -13,13 +13,13 @@ def need(text, token, where):
 def text(rel): return (PKG/rel).read_text(encoding='utf-8', errors='ignore')
 
 # Identity / dependencies
-need(GRADLE, 'versionName = "0.8.2"', 'Gradle')
-need(GRADLE, 'versionCode = 820', 'Gradle')
+need(GRADLE, 'versionName = "0.8.3"', 'Gradle')
+need(GRADLE, 'versionCode = 830', 'Gradle')
 need(GRADLE, 'applicationId = "com.harukisolodev.harukistream"', 'Gradle')
 for dep in ['media3-exoplayer:1.11.0','media3-session:1.11.0','media3-datasource-okhttp:1.11.0','NewPipeExtractor:v0.26.5','TAndroidLame:1.1']:
     need(GRADLE, dep, 'Gradle')
 need(GRADLE, 'exclude(group = "com.android.support")', 'TAndroidLame AndroidX exclusion')
-if VERSION != '0.8.2': fail(f'VERSION.txt is {VERSION}, expected 0.8.2')
+if VERSION != '0.8.3': fail(f'VERSION.txt is {VERSION}, expected 0.8.3')
 strings=(ROOT/'app/src/main/res/values/strings.xml').read_text(encoding='utf-8')
 need(strings, 'Haruki NovaTube', 'strings.xml')
 need(strings, '<string name="launcher_name">NovaTube</string>', 'launcher label')
@@ -138,13 +138,13 @@ need(vm, 'NovaAiMatchSource.LOCAL_PLAYLIST', 'Nova AI playlist evidence')
 
 # Equalizer / premium interaction polish
 need(manifest, 'android.permission.MODIFY_AUDIO_SETTINGS', 'Equalizer manifest permission')
-for token in ['BASS_BOOST','POP','ROCK','HIP_HOP','EDM','VOCAL','PODCAST','CLASSICAL','MOVIE','NIGHT','CUSTOM','val popular']:
+for token in ['BASS_BOOST','TREBLE_BOOST','POP','ROCK','HIP_HOP','EDM','DANCE','RNB','JAZZ','ACOUSTIC','CLASSICAL','FOLK','METAL','VOCAL','PODCAST','MOVIE','GAMING','NIGHT','CUSTOM','popularChoice','val selectable','val popular']:
     need(eqdata, token, 'Equalizer presets')
 for token in ['Equalizer(0, audioSessionId)','bandLevelRange','numberOfBands','getCenterFreq','setBandLevel','applyCurve','release()']:
     need(eqengine, token, 'Native equalizer engine')
 for token in ['generateAudioSessionId()','setAudioSessionId(audioSessionId)','NovaEqualizerEngine(audioSessionId)','distinctUntilChanged()','previewEqualizer']:
     need(playback, token, 'Long-form equalizer integration')
-for token in ['Nova Equalizer','Popular presets','Custom 5-band tuning','PlaybackService.previewEqualizer','onValueChangeFinished','EqualizerPreset.popular']:
+for token in ['Nova Equalizer','Equalizer preset','Custom 5-band tuning','PlaybackService.previewEqualizer','onValueChangeFinished','EqualizerPreset.selectable','DropdownMenu','Popular =']:
     need(eqscreen, token, 'Equalizer UI')
 for token in ['EqualizerPreset','equalizerEnabled','equalizerPreset','equalizerCustomBands']:
     need(text('data/Models.kt'), token, 'Equalizer settings model')
@@ -152,14 +152,37 @@ for token in ['equalizer_enabled','equalizer_preset','equalizer_custom_bands','s
     need(text('data/SettingsRepository.kt'), token, 'Equalizer persistence')
 for token in ['equalizerEnabled','equalizerPreset','equalizerCustomBands','NovaEqualizerEngine','if (active)']:
     need(text('ui/screens/VerticalNativePlayer.kt'), token, 'Shorts equalizer integration')
-for token in ['settings: AppSettings','generateAudioSessionId()','NovaEqualizerEngine(audioSessionId)']:
-    need(text('ui/screens/DownloadsScreen.kt'), token, 'Downloaded playback equalizer')
+downloads=text('ui/screens/DownloadsScreen.kt')
+for token in ['onPlayDownloaded: (LibraryItem) -> Unit','LibraryDownloadCard(it, onPlay = onPlayDownloaded)','contentType = { "downloaded" }']:
+    need(downloads, token, 'Downloaded shared mini-player routing')
+for token in ['fun playDownloaded','ACTION_PLAY_DOWNLOADED','EXTRA_PLAY_BUNDLE']:
+    need(playback, token, 'Downloaded shared MediaSession playback')
+for token in ['PlaybackService.playDownloaded','watchMinimized = true','browseVm.openOffline(offlineVideo, libraryItem)']:
+    need(app, token, 'Downloaded mini-player app routing')
+if 'DownloadedPlayerDialog' in downloads or 'ExoPlayer.Builder(context).build()' in downloads:
+    fail('Downloads should not create a second independent player')
 for token in ['premiumClickable','collectIsPressedAsState','graphicsLayer','animateFloatAsState']:
     need(interactions, token, 'Premium press interaction')
 for token in ['AnimatedContent','fadeIn','slideInHorizontally','NovaNavIcon','animateFloatAsState','graphicsLayer','Destination.EQUALIZER']:
     need(app, token, 'Premium navigation polish')
 if all_text.count('.premiumClickable') < 6:
     fail('Premium press interaction is not applied broadly enough to tappable content')
+
+# v0.8.3 personalization/search/performance
+for token in ['topics.take(6).forEach { add("$it shorts") }','personalized.shuffled(random).take(10)','exploration.take(2)']:
+    need(reco, token, 'Shorts/Home personalization alignment')
+need(shorts, 'beyondViewportPageCount = 0', 'Shorts player retention')
+for token in ['youtubeVideoSuggestions','repository.videoSuggestions(clean, 3)','delay(280)']:
+    need(vm + text('data/BrowseModels.kt'), token, 'Direct video search suggestions')
+for token in ['fun videoSuggestions','videoSuggestionCache','suggestionCacheLifetimeMs']:
+    need(text('extractor/BrowseRepository.kt'), token, 'Video suggestion cache')
+for token in ['state.youtubeVideoSuggestions.take(3)','premiumClickable { onOpenVideo(video) }','contentType = { "video" }']:
+    need(yt, token, 'Search suggestion UI / feed reuse')
+for token in ['playlistMembership','selected = playlistMembership.isNotEmpty()','alreadyAdded','Added •']:
+    need(watch, token, 'Playlist membership highlight')
+common=text('ui/components/Common.kt')
+for token in ['maxKb / 16','urlLocks','> 720']:
+    need(common, token, 'Thumbnail RAM/decode optimization')
 
 # Playback / 720p+
 for token in ['setBufferDurationsMsForStreaming(45_000, 120_000, 2_500, 6_000)','if (preferredHeight < 720)','bufferedAhead >= 55_000L','ahead < 35_000L','pauseForShorts','resumeAfterShorts']:
@@ -189,5 +212,5 @@ if errors:
     print('PRECHECK FAILED')
     for e in errors: print(' -', e)
     sys.exit(1)
-print('PRECHECK OK — Haruki NovaTube Android v0.8.2')
-print(f'Checked {len(all_kt)} Kotlin files: adaptive UI, offline reuse, MP3, playlists, recommendations, Nova AI modes, equalizer, premium interactions, playback/Shorts restore, smart downloads, prior critical regressions, XML, secrets/ads, and delimiter balance.')
+print('PRECHECK OK — Haruki NovaTube Android v0.8.3')
+print(f'Checked {len(all_kt)} Kotlin files: adaptive UI, offline reuse, MP3, playlist highlighting, personalized Shorts, direct-video search suggestions, expanded equalizer, shared downloaded mini-player, premium interactions, thumbnail/Shorts performance, playback restore, smart downloads, prior regressions, XML, secrets/ads, and delimiter balance.')

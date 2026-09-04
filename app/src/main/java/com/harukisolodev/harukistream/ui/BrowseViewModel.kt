@@ -82,6 +82,7 @@ class BrowseViewModel(app: Application) : AndroidViewModel(app) {
                 youtubeSearchPlaylists = emptyList(),
                 youtubeSearchSuggestion = "",
                 youtubeSuggestions = emptyList(),
+                youtubeVideoSuggestions = emptyList(),
                 youtubeQuery = "",
                 collection = BrowseCollectionState()
             )
@@ -168,6 +169,7 @@ class BrowseViewModel(app: Application) : AndroidViewModel(app) {
                 youtubeSearchPlaylists = emptyList(),
                 youtubeSearchSuggestion = "",
                 youtubeSuggestions = emptyList(),
+                youtubeVideoSuggestions = emptyList(),
                 collection = BrowseCollectionState()
             )
             runCatching { withContext(Dispatchers.IO) { repository.youtubeSearch(clean, reset = true) } }
@@ -212,6 +214,7 @@ class BrowseViewModel(app: Application) : AndroidViewModel(app) {
             youtubeSearchPlaylists = emptyList(),
             youtubeSearchSuggestion = "",
             youtubeSuggestions = emptyList(),
+            youtubeVideoSuggestions = emptyList(),
             youtubeError = "",
             youtubeCategory = "For You",
             youtubeHomeNavigationToken = token,
@@ -224,15 +227,29 @@ class BrowseViewModel(app: Application) : AndroidViewModel(app) {
         suggestionJob?.cancel()
         val clean = query.trim()
         if (clean.length < 2) {
-            _state.value = _state.value.copy(youtubeSuggestions = emptyList())
+            _state.value = _state.value.copy(youtubeSuggestions = emptyList(), youtubeVideoSuggestions = emptyList())
             return
         }
         suggestionJob = viewModelScope.launch {
-            delay(180)
-            val suggestions = runCatching { withContext(Dispatchers.IO) { repository.suggestions(clean) } }
-                .getOrDefault(emptyList())
-            if (_state.value.youtubeQuery != clean || _state.value.youtubeQuery.isBlank()) {
-                _state.value = _state.value.copy(youtubeSuggestions = suggestions)
+            // Text predictions are cheap and should feel instant. A full YouTube result
+            // preview is intentionally delayed until typing settles so fast typing does not
+            // start several blocking extractor requests that can compete with playback/UI.
+            delay(170)
+            val textSuggestions = runCatching {
+                withContext(Dispatchers.IO) { repository.suggestions(clean) }
+            }.getOrDefault(emptyList())
+            if (_state.value.youtubeSearchDraft.trim() != clean) return@launch
+            _state.value = _state.value.copy(youtubeSuggestions = textSuggestions)
+
+            if (clean.length < 3) return@launch
+            delay(280) // ~450 ms total pause before the heavier direct-video preview.
+            if (_state.value.youtubeSearchDraft.trim() != clean) return@launch
+            val videoSuggestions = runCatching {
+                withContext(Dispatchers.IO) { repository.videoSuggestions(clean, 3) }
+            }.getOrDefault(emptyList())
+            if (_state.value.youtubeSearchDraft.trim() == clean &&
+                (_state.value.youtubeQuery != clean || _state.value.youtubeQuery.isBlank())) {
+                _state.value = _state.value.copy(youtubeVideoSuggestions = videoSuggestions)
             }
         }
     }
@@ -246,6 +263,7 @@ class BrowseViewModel(app: Application) : AndroidViewModel(app) {
             youtubeSearchPlaylists = emptyList(),
             youtubeSearchSuggestion = "",
             youtubeSuggestions = emptyList(),
+            youtubeVideoSuggestions = emptyList(),
             youtubeError = ""
         )
     }

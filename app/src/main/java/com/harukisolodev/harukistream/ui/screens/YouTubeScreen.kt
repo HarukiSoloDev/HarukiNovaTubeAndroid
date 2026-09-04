@@ -143,7 +143,9 @@ fun YouTubeScreen(
 
                 val showSuggestions = query.trim().length >= 2 &&
                     query.trim() != state.youtubeQuery && state.youtubeSuggestions.isNotEmpty()
-                if (showSuggestions) {
+                val showVideoSuggestions = query.trim().length >= 3 &&
+                    query.trim() != state.youtubeQuery && state.youtubeVideoSuggestions.isNotEmpty()
+                if (showSuggestions || showVideoSuggestions) {
                     Surface(
                         modifier = Modifier.fillMaxWidth().padding(horizontal = 12.dp),
                         color = HarukiCard,
@@ -151,12 +153,30 @@ fun YouTubeScreen(
                         border = androidx.compose.foundation.BorderStroke(1.dp, HarukiBorderSoft)
                     ) {
                         Column {
-                            state.youtubeSuggestions.take(8).forEach { suggestion ->
+                            if (showVideoSuggestions) {
+                                Text("Videos", color = HarukiMuted, style = MaterialTheme.typography.labelSmall, modifier = Modifier.padding(start = 13.dp, top = 10.dp, bottom = 3.dp))
+                                state.youtubeVideoSuggestions.take(3).forEach { video ->
+                                    Row(
+                                        Modifier.fillMaxWidth().premiumClickable { onOpenVideo(video) }.padding(horizontal = 10.dp, vertical = 7.dp),
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                                    ) {
+                                        RemoteImage(video.thumbnailUrl, Modifier.width(92.dp).aspectRatio(16f / 9f).clip(RoundedCornerShape(8.dp)))
+                                        Column(Modifier.weight(1f)) {
+                                            Text(video.title, color = HarukiText, maxLines = 2, overflow = TextOverflow.Ellipsis, style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.SemiBold)
+                                            Text(video.uploader, color = HarukiMuted, maxLines = 1, overflow = TextOverflow.Ellipsis, style = MaterialTheme.typography.labelSmall)
+                                        }
+                                        Icon(Icons.Rounded.PlayArrow, "Play", tint = HarukiPrimary)
+                                    }
+                                }
+                                if (showSuggestions) HorizontalDivider(color = HarukiBorderSoft)
+                            }
+                            state.youtubeSuggestions.take(if (showVideoSuggestions) 5 else 8).forEach { suggestion ->
                                 Row(
-                                    Modifier.fillMaxWidth().clickable {
+                                    Modifier.fillMaxWidth().premiumClickable {
                                         vm.updateSearchDraft(suggestion)
                                         vm.searchYouTube(suggestion)
-                                    }.padding(horizontal = 13.dp, vertical = 11.dp),
+                                    }.padding(horizontal = 13.dp, vertical = 10.dp),
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     Icon(Icons.Rounded.Search, null, tint = HarukiMuted, modifier = Modifier.size(20.dp))
@@ -292,7 +312,7 @@ fun YouTubeScreen(
                     }
                     val feedColumns = adaptive.feedColumns.coerceAtLeast(1)
                     if (feedColumns == 1) {
-                        items(regular, key = { it.url }) { item ->
+                        items(regular, key = { it.url }, contentType = { "video" }) { item ->
                             YouTubeVideoCard(
                                 item = item,
                                 downloaded = SavedVideoStore.canonicalKey(item.url, item.id) in downloadedKeys,
@@ -302,7 +322,7 @@ fun YouTubeScreen(
                             )
                         }
                     } else {
-                        items(regular.chunked(feedColumns), key = { row -> row.joinToString("|") { it.url } }) { row ->
+                        items(regular.chunked(feedColumns), key = { row -> row.joinToString("|") { it.url } }, contentType = { "video-row" }) { row ->
                             Row(Modifier.fillMaxWidth().padding(horizontal = 6.dp), horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                                 row.forEach { item ->
                                     YouTubeVideoCard(

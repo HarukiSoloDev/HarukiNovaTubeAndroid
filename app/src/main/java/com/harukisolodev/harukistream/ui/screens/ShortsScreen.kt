@@ -114,7 +114,7 @@ fun ShortsScreen(
                 VerticalPager(
                     state = pagerState,
                     modifier = Modifier.fillMaxSize(),
-                    beyondViewportPageCount = 1,
+                    beyondViewportPageCount = 0,
                     key = { index -> items[index].url }
                 ) { index ->
                     val item = items[index]

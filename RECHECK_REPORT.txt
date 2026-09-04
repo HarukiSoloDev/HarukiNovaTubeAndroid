@@ -1,20 +1,15 @@
-Haruki NovaTube Android v0.8.2 — Equalizer + Performance Recheck
-================================================================
+Haruki NovaTube Android v0.8.3 — Personalization + Smoothness Recheck
 
-PASS — versionName 0.8.2 / versionCode 820.
+PASS — versionName 0.8.3 / versionCode 830.
 PASS — project preflight completed across 54 Kotlin source files.
-PASS — XML and Kotlin delimiter checks completed.
-PASS — previous topicSignature / TAndroidLame API / AndroidX exclusion fixes retained.
-PASS — native Equalizer engine attaches to Media3 audio-session IDs and clamps to device band limits.
-PASS — popular presets and persistent Custom 5-band tuning are present.
-PASS — long-form, active Shorts and downloaded playback EQ paths are present; inactive preloaded Shorts do not keep EQ engines alive.
-PASS — live EQ slider preview avoids DataStore writes on every drag frame; preset/custom persistence is performed in a single edit transaction.
-PASS — premium press feedback uses graphicsLayer scale/alpha and normal Compose indication.
-PASS — destination fade/slide and navigation-icon selection animations are present.
-PASS — long-form back buffer reduced to 12 s while v0.8.1 startup/rebuffer thresholds remain.
-PASS — Shorts Watch restoration and playback-safe 8 MiB video/audio chunk downloads remain guarded.
-PASS — Nova AI Fast / Smart / Deep profiles remain present.
+PASS — Kotlin delimiter guard and Android XML parsing.
+PASS — Shorts uses the Home recommendation interest/topic profile much more strongly and retains only the visible Shorts pager page.
+PASS — playlist membership highlight and per-playlist Added state are present.
+PASS — completed download playback routes into the shared PlaybackService/MediaSession mini player instead of creating a second ExoPlayer in Downloads.
+PASS — direct-video search suggestions are debounced, cached and separated from the quick text prediction path.
+PASS — expanded Equalizer dropdown and common-preset Popular badges are present.
+PASS — thumbnail memory cache reduced and duplicate simultaneous URL loads are coalesced.
+PASS — v0.8.1 smart 8 MiB download engine, Shorts Watch restore, Nova AI modes and prior v0.8.0 compile fixes remain present.
+PASS — basic embedded-secret/ad marker scan.
 
-Gradle compile status:
-- NOT RUN in this sandbox. No Android SDK is installed, and the Gradle wrapper requires a distribution download that is unavailable here.
-- Run VERIFY_BUILD.bat or :app:assembleDebug in Android Studio for the final device/toolchain compile.
+FULL GRADLE COMPILE: NOT EXECUTED IN THIS SANDBOX. The wrapper attempted to obtain its Gradle distribution but network name resolution is unavailable here. Run VERIFY_BUILD.bat or :app:assembleDebug in Android Studio for final compiler/device validation.

@@ -136,25 +136,35 @@ class RecommendationStore(context: Context) {
 
     fun shortsQueries(): List<String> {
         val random = Random(System.nanoTime())
-        val interests = scores().entries
-            .filter { it.value > 0.6 }
+        val topics = topicScores().entries
+            .filter { it.value > 1.0 && KID_TERMS.none { kid -> it.key.contains(kid) } }
             .sortedByDescending { it.value }
             .map { it.key }
             .take(12)
-            .shuffled(random)
+        val interests = scores().entries
+            .filter { it.value > 1.0 && it.key !in KID_TERMS }
+            .sortedByDescending { it.value }
+            .map { it.key }
+            .take(16)
 
-        // Keep personalization, but always reserve exploration slots so one interest/channel
-        // cannot monopolize Shorts. Query order changes on every refresh/load generation.
+        // Shorts now follows the same local preference model as Home. Most queries are
+        // built from watched/searched/saved/downloaded/playlist topics; only a small
+        // exploration slice is kept so the feed can still discover something new.
+        val personalized = buildList {
+            topics.take(6).forEach { add("$it shorts") }
+            topics.take(5).zip(interests.shuffled(random).take(5)).forEach { (topic, interest) ->
+                add("$topic $interest shorts")
+            }
+            interests.chunked(2).take(3).forEach { add(it.joinToString(" ") + " shorts") }
+        }.filter(String::isNotBlank).distinct()
+
         val exploration = listOf(
-            "travel shorts", "food shorts", "sports shorts", "science shorts",
-            "creative filmmaking shorts", "diy shorts", "cars shorts", "technology shorts",
-            "gaming shorts", "music performance shorts", "movie analysis shorts",
-            "photography shorts", "nature documentary shorts", "engineering shorts"
+            "technology shorts", "gaming shorts", "music shorts", "cars shorts",
+            "science shorts", "engineering shorts", "film shorts", "travel shorts"
         ).shuffled(random)
-        val personalized = interests.take(6).map { "$it #shorts" }
-        return (personalized + exploration.take(7))
+
+        return (personalized.shuffled(random).take(10) + exploration.take(2))
             .distinct()
-            .shuffled(random)
             .take(12)
     }
 
