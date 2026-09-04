@@ -1,0 +1,19 @@
+Haruki NovaTube Android v0.8.1 — Build Fix Carry-Forward
+========================================================
+
+The v0.8.0 compile fixes are retained in v0.8.1:
+
+1. RecommendationStore.kt
+   - topicSignature(BrowseVideo) helper remains present.
+
+2. Mp3Transcoder.kt
+   - Uses TAndroidLame 1.1 encodeBufferInterLeaved(...) and flush(...).
+   - Native encoder is closed in finally.
+
+3. app/build.gradle.kts
+   - TAndroidLame 1.1 keeps its legacy com.android.support transitive dependencies excluded so AndroidX core/media do not collide.
+
+4. tools/preflight.py
+   - Continues to guard the MP3 API and AndroidX exclusion, and now also validates the v0.8.1 performance/Shorts/AI changes.
+
+Current project version: 0.8.1 / versionCode 810.

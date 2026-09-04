@@ -1,0 +1,20 @@
+HARUKI NOVATUBE ANDROID v0.6.3
+
+1. Extract Haruki_NovaTube_Android_v0.6.3.zip.
+2. Open Android Studio.
+3. Choose Open and select the Haruki_NovaTube_Android_v0.6.3 folder.
+4. Let Gradle Sync finish.
+5. Run VERIFY_BUILD.bat or Build > Make Project.
+6. Connect your Android phone/tablet and press Run.
+
+FOCUS:
+Haruki NovaTube is YouTube-only. TikTok and Google account-login experiments were removed from this release so playback, Shorts, browsing, downloads and performance can stay focused.
+
+PLAYER:
+Playback quality defaults to Auto. Auto uses Media3's measured throughput plus Android network information and keeps headroom for audio/overhead. Choose a fixed quality from Settings or the player only when you want to force it.
+
+SHORTS:
+Shorts opens as a dedicated fullscreen vertical player. The feed loads more items as you approach the end.
+
+BACK BUTTON:
+Fullscreen exits first. Shorts closes back to YouTube. A normal watch page returns to the previous feed. The app exits only from the root YouTube Home when there is nothing left to go back to.

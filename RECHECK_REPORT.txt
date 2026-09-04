@@ -1,0 +1,18 @@
+Haruki NovaTube Android v0.8.1 — Performance Release Recheck
+============================================================
+
+PASS — versionName 0.8.1 / versionCode 810.
+PASS — project preflight completed across 50 Kotlin source files.
+PASS — XML and Kotlin delimiter checks completed.
+PASS — previous topicSignature / TAndroidLame API / AndroidX exclusion fixes retained.
+PASS — Shorts no longer stops PlaybackService; Back restoration path is present.
+PASS — long-form load-control thresholds retuned for faster startup/rebuffer recovery.
+PASS — download coordinator guarantees at least one active worker during playback.
+PASS — video and audio paths both use bounded 8 MiB chunk downloads when range support is available.
+PASS — adaptive connections and queue-lane registration/cancellation guards present.
+PASS — Nova AI Fast / Smart / Deep profiles and UI controls present.
+PASS — Downloads performance status card and memoized Saved-key set present.
+
+Gradle compile status:
+- NOT RUN in this sandbox. The wrapper attempted to fetch Gradle 9.5.0 but network/DNS access is unavailable, and no Android SDK is installed.
+- Run VERIFY_BUILD.bat or :app:assembleDebug in Android Studio for the final device/toolchain compile.
